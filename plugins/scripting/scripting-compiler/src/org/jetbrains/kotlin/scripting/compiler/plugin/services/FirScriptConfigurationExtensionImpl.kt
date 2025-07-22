@@ -6,7 +6,6 @@
 package org.jetbrains.kotlin.scripting.compiler.plugin.services
 
 import com.intellij.openapi.diagnostic.Logger
-import com.intellij.psi.PsiElement
 import org.jetbrains.kotlin.*
 import org.jetbrains.kotlin.descriptors.Modality
 import org.jetbrains.kotlin.descriptors.Visibilities
@@ -28,7 +27,8 @@ import org.jetbrains.kotlin.fir.expressions.impl.FirSingleExpressionBlock
 import org.jetbrains.kotlin.fir.moduleData
 import org.jetbrains.kotlin.fir.resolve.providers.dependenciesSymbolProvider
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
-import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirLocalPropertySymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirRegularPropertySymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirReceiverParameterSymbol
 import org.jetbrains.kotlin.fir.toFirResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
@@ -95,14 +95,13 @@ class FirScriptConfiguratorExtensionImpl(
                     parameters.add(
                         buildProperty {
                             moduleData = session.moduleData
-                            source = this@configure.source?.fakeElement(KtFakeSourceElementKind.ScriptParameter)
+                            source = this@configure.source.fakeElement(KtFakeSourceElementKind.ScriptParameter)
                             origin = FirDeclarationOrigin.ScriptCustomization.ParameterFromBaseClass
                             // TODO: copy type parameters?
                             returnTypeRef = baseCtorParameter.returnTypeRef
                             name = baseCtorParameter.name
-                            symbol = FirPropertySymbol(name)
+                            symbol = FirRegularPropertySymbol(CallableId(name))
                             status = FirDeclarationStatusImpl(Visibilities.Local, Modality.FINAL)
-                            isLocal = true
                             isVar = false
                         }
                     )
@@ -131,9 +130,8 @@ class FirScriptConfiguratorExtensionImpl(
                     origin = FirDeclarationOrigin.ScriptCustomization.Parameter
                     returnTypeRef = this@configure.tryResolveOrBuildParameterTypeRefFromKotlinType(propertyType)
                     name = Name.identifier(propertyName)
-                    symbol = FirPropertySymbol(name)
+                    symbol = FirLocalPropertySymbol()
                     status = FirDeclarationStatusImpl(Visibilities.Local, Modality.FINAL)
-                    isLocal = true
                     isVar = false
                 }
             )
@@ -147,9 +145,8 @@ class FirScriptConfiguratorExtensionImpl(
                     origin = FirDeclarationOrigin.ScriptCustomization.Parameter
                     returnTypeRef = this@configure.tryResolveOrBuildParameterTypeRefFromKotlinType(KotlinType(MutableMap::class))
                     name = Name.identifier(it)
-                    symbol = FirPropertySymbol(name)
+                    symbol = FirLocalPropertySymbol()
                     status = FirDeclarationStatusImpl(Visibilities.Local, Modality.FINAL)
-                    isLocal = true
                     isVar = false
                 }
             )
@@ -165,7 +162,7 @@ class FirScriptConfiguratorExtensionImpl(
                 when (val lastScriptBlockBody = lastScriptBlock?.body) {
                     is FirLazyBlock -> null
                     is FirSingleExpressionBlock -> lastScriptBlockBody.statement as? FirExpression
-                    else -> lastScriptBlockBody?.statements?.single()?.takeIf { it is FirExpression } as? FirExpression
+                    else -> lastScriptBlockBody?.statements?.singleOrNull()?.takeIf { it is FirExpression } as? FirExpression
                 }?.takeUnless { it is FirErrorExpression }
 
             if (lastExpression != null) {
@@ -177,7 +174,7 @@ class FirScriptConfiguratorExtensionImpl(
                 declarations.add(
                     buildProperty {
                         this.name = Name.identifier(resultFieldName)
-                        this.symbol = FirPropertySymbol(CallableId(context.packageFqName, this.name))
+                        this.symbol = FirRegularPropertySymbol(CallableId(context.packageFqName, this.name))
                         source = lastScriptBlock?.source
                         moduleData = session.moduleData
                         origin = FirDeclarationOrigin.ScriptCustomization.ResultProperty
@@ -194,7 +191,6 @@ class FirScriptConfiguratorExtensionImpl(
                         )
 
                         status = FirDeclarationStatusImpl(Visibilities.Public, Modality.FINAL)
-                        isLocal = false
                         isVar = false
                     }.also {
                         resultPropertyName = it.name

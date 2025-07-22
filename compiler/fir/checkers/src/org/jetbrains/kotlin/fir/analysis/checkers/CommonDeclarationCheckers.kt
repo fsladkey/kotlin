@@ -66,6 +66,7 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
         FirFunctionNameChecker,
         FirFunctionTypeParametersSyntaxChecker,
         FirMemberFunctionsChecker,
+        FirInlineBodySimpleFunctionChecker,
         FirDataObjectContentChecker,
         ContractSyntaxV2FunctionChecker,
         FirAnyDeprecationChecker,
@@ -134,6 +135,7 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
         FirDelegationInInterfaceSyntaxChecker,
         FirEnumClassSimpleChecker,
         FirLocalEntityNotAllowedChecker,
+        FirInlineBodyRegularClassChecker,
         FirManyCompanionObjectsChecker,
         FirMethodOfAnyImplementedInInterfaceChecker,
         FirDataClassPrimaryConstructorChecker,
@@ -208,5 +210,6 @@ object CommonDeclarationCheckers : DeclarationCheckers() {
 
     override val enumEntryCheckers: Set<FirEnumEntryChecker> = setOf(
         FirEnumEntriesRedeclarationChecker,
+        FirOptInEnumEntryChecker,
     )
 }

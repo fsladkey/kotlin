@@ -401,7 +401,6 @@ enum class LanguageFeature(
     MultiDollarInterpolation(KOTLIN_2_2, "KT-2425"),
     JvmDefaultEnableByDefault(KOTLIN_2_2, "KT-71768"),
     ForbidExposureOfPrivateTypesInNonPrivateInlineFunctionsInKlibs(sinceVersion = KOTLIN_2_2, enabledInProgressiveMode = true, "KT-70916"),
-    JvmIndyAllowLambdasWithAnnotations(KOTLIN_2_2, "KT-76606"),
     FixationEnhancementsIn22(KOTLIN_2_2, "KT-76345"), // KT-76345, KT-71854
     ForbidCrossFileIrFieldAccessInKlibs(KOTLIN_2_2, enabledInProgressiveMode = true, "KT-71138"),
     AllowExpectDeclarationsInJsExport(KOTLIN_2_2, "KT-64951"),
@@ -412,12 +411,11 @@ enum class LanguageFeature(
     ForbidCompanionInLocalInnerClass(KOTLIN_2_3, enabledInProgressiveMode = true, "KT-47289"),
     ForbidImplementationByDelegationWithDifferentGenericSignature(KOTLIN_2_3, enabledInProgressiveMode = true, "KT-72140"),
     ForbidJvmSerializableLambdaOnInlinedFunctionLiterals(KOTLIN_2_3, enabledInProgressiveMode = true, "KT-71906"),
-    ErrorAboutDataClassCopyVisibilityChange(KOTLIN_2_3, enabledInProgressiveMode = true, "KT-11914"), // KT-11914. Deprecation phase 2
     ReportExposedTypeForInternalTypeParameterBounds(KOTLIN_2_3, enabledInProgressiveMode = true, "KTLC-275"),
     EnableDfaWarningsInK2(KOTLIN_2_3, "KT-50965"),
     ForbidParenthesizedLhsInAssignments(KOTLIN_2_3, enabledInProgressiveMode = true, "KT-70507"),
-    AllowEagerSupertypeAccessibilityChecks(KOTLIN_2_3, "KT-73611"),
-    DontMakeExplicitJavaTypeArgumentsFlexible(KOTLIN_2_3, "KT-71718"),
+    DontMakeExplicitJavaTypeArgumentsFlexible(KOTLIN_2_3, "KTLC-284"),
+    PreciseSimplificationToFlexibleLowerConstraint(KOTLIN_2_3, "KT-78621"),
     DontIgnoreUpperBoundViolatedOnImplicitArguments(KOTLIN_2_3, "KT-67146"),
     ResolveTopLevelLambdasAsSyntheticCallArgument(KOTLIN_2_3, "KT-67869"),
     DataFlowBasedExhaustiveness(sinceVersion = KOTLIN_2_3, issue = "KT-76635"),
@@ -425,7 +423,7 @@ enum class LanguageFeature(
     ForbidAnnotationsWithUseSiteTargetOnExpressions(KOTLIN_2_3, enabledInProgressiveMode = true, "KT-75242"),
     ProhibitNullableTypeThroughTypealias(KOTLIN_2_3, enabledInProgressiveMode = true, "KTLC-279"),
     ForbidObjectDelegationToItself(KOTLIN_2_3, enabledInProgressiveMode = true, "KT-17417"),
-    ForbidInferOfInvisibleTypeAsReifiedVarargOrReturnType(KOTLIN_2_3, enabledInProgressiveMode = true, issue = "KT-25513"),
+    JvmIndyAllowLambdasWithAnnotations(KOTLIN_2_3, "KT-76606"),
 
     AllowCheckForErasedTypesInContracts(KOTLIN_2_3, "KT-45683"),
     AllowContractsOnSomeOperators(KOTLIN_2_3, "KT-32313"),
@@ -433,12 +431,26 @@ enum class LanguageFeature(
     ConditionImpliesReturnsContracts(KOTLIN_2_3, "KT-8889"),
     HoldsInContracts(KOTLIN_2_3, "KT-32993"),
 
+    InferenceEnhancementsIn23(KOTLIN_2_3, "KT-76826"),
+    AllowReturnInExpressionBodyWithExplicitType(KOTLIN_2_3, "KT-76926"),
+    ParseLambdaWithSuspendModifier(KOTLIN_2_3, "KT-22765"),
+    DiscriminateSuspendInOverloadResolution(KOTLIN_2_3, "KT-23610"),
+    JsAllowLongInExportedDeclarations(sinceVersion = KOTLIN_2_3, "KT-79222"),
+
     // 2.4
 
     ForbidExposingLessVisibleTypesInInline(KOTLIN_2_4, enabledInProgressiveMode = true, "KTLC-283"),
     ForbidCaptureInlinableLambdasInJsCode(KOTLIN_2_4, enabledInProgressiveMode = true, "KT-69297"),
     ForbidInitializationBeforeDeclarationInAnonymous(KOTLIN_2_4, enabledInProgressiveMode = true, "KT-77156"),
     AllowReifiedTypeInCatchClause(KOTLIN_2_4, issue = "KT-54363"),
+    ForbidGetSetValueWithTooManyParameters(KOTLIN_2_4, issue = "KT-77131"),
+    ForbidReturnInExpressionBodyWithoutExplicitTypeEdgeCases(KOTLIN_2_4, enabledInProgressiveMode = true, "KTLC-288"),
+    CheckOptInOnPureEnumEntries(KOTLIN_2_4, enabledInProgressiveMode = true, "KTLC-359"),
+    ForbidExposingPackagePrivateInInternal(KOTLIN_2_4, enabledInProgressiveMode = true, "KTLC-271"),
+
+    // 2.5
+
+    ErrorAboutDataClassCopyVisibilityChange(KOTLIN_2_5, enabledInProgressiveMode = true, "KT-11914"), // KT-11914. Deprecation phase 2
 
     // End of 2.* language features --------------------------------------------------
 
@@ -493,6 +505,10 @@ enum class LanguageFeature(
     PropertyParamAnnotationDefaultTargetMode(sinceVersion = null, "KT-73255"),
     AnnotationAllUseSiteTarget(sinceVersion = null, "KT-73256"),
     ImplicitJvmExposeBoxed(sinceVersion = null, forcesPreReleaseBinaries = true, issue = "KT-73466"),
+    AllowAnyAsAnActualTypeForExpectInterface(sinceVersion = null, issue = "KT-79308"),
+    NameBasedDestructuring(sinceVersion = null, "KT-19627"),
+    DeprecateNameMismatchInShortDestructuringWithParentheses(sinceVersion = null, "KT-19627"),
+    EnableNameBasedDestructuringShortForm(sinceVersion = null, "KT-19627"),
 
     // K1 support only. We keep it, as we may want to support it also in K2
     UnitConversionsOnArbitraryExpressions(sinceVersion = null, NO_ISSUE_SPECIFIED),
@@ -509,11 +525,11 @@ enum class LanguageFeature(
     DisableCheckingChangedProgressionsResolve(sinceVersion = null, "KT-49276"),
 
     DontCreateSyntheticPropertiesWithoutBaseJavaGetter(sinceVersion = null, "KT-64358"),
-    JavaTypeParameterDefaultRepresentationWithDNN(sinceVersion = null, testOnly = true, issue = "KT-59138"),
     ProperFieldAccessGenerationForFieldAccessShadowedByKotlinProperty(sinceVersion = null, "KT-56386"),
     IrInlinerBeforeKlibSerialization(sinceVersion = null, forcesPreReleaseBinaries = true, issue = "KT-69765"),
     NestedTypeAliases(sinceVersion = null, forcesPreReleaseBinaries = true, issue = "KT-45285"),
     ForbidUsingSupertypesWithInaccessibleContentInTypeArguments(sinceVersion = null, enabledInProgressiveMode = true, "KT-66691"), // KT-66691, KT-66742
+    AllowEagerSupertypeAccessibilityChecks(sinceVersion = null, enabledInProgressiveMode = true, "KT-73611"),
     UnnamedLocalVariables(sinceVersion = null, forcesPreReleaseBinaries = false, issue = "KT-74809"),
     ContextSensitiveResolutionUsingExpectedType(sinceVersion = null, "KT-16768"),
     AnnotationsInMetadata(sinceVersion = null, "KT-57919"),
@@ -521,6 +537,7 @@ enum class LanguageFeature(
     DisableWarningsForIdentitySensitiveOperationsOnValueClassesAndPrimitives(sinceVersion = null, "KT-70722"),
     IrRichCallableReferencesInKlibs(sinceVersion = null, "KT-72734"), // KT-72734, KT-74384, KT-74392
     ExportKlibToOlderAbiVersion(sinceVersion = null, forcesPreReleaseBinaries = true, issue = "KT-76131"),
+    ForbidInferOfInvisibleTypeAsReifiedVarargOrReturnType(sinceVersion = null, enabledInProgressiveMode = true, issue = "KTLC-14"),
     ;
 
     constructor(
@@ -587,6 +604,7 @@ enum class LanguageVersion(val major: Int, val minor: Int) : DescriptionAware, L
     KOTLIN_2_2(2, 2),
     KOTLIN_2_3(2, 3),
     KOTLIN_2_4(2, 4),
+    KOTLIN_2_5(2, 5),
     ;
 
     override val isStable: Boolean
@@ -614,7 +632,7 @@ enum class LanguageVersion(val major: Int, val minor: Int) : DescriptionAware, L
             str.split(".", "-").let { if (it.size >= 2) fromVersionString("${it[0]}.${it[1]}") else null }
 
         // Version status
-        //            1.0..1.7        1.8..1.9           2.0..2.2    2.3..2.4
+        //            1.0..1.7        1.8..2.0           2.1..2.3    2.5
         // Language:  UNSUPPORTED --> DEPRECATED ------> STABLE ---> EXPERIMENTAL
         // API:       UNSUPPORTED --> DEPRECATED ------> STABLE ---> EXPERIMENTAL
 
@@ -625,10 +643,10 @@ enum class LanguageVersion(val major: Int, val minor: Int) : DescriptionAware, L
         val FIRST_SUPPORTED = KOTLIN_1_8
 
         @JvmField
-        val FIRST_NON_DEPRECATED = KOTLIN_2_0
+        val FIRST_NON_DEPRECATED = KOTLIN_2_1
 
         @JvmField
-        val LATEST_STABLE = KOTLIN_2_2
+        val LATEST_STABLE = KOTLIN_2_3
     }
 }
 

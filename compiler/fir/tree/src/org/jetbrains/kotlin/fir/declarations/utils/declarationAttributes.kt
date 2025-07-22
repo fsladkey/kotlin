@@ -34,11 +34,13 @@ private object KlibSourceFile : FirDeclarationDataKey()
 private object EvaluatedValue : FirDeclarationDataKey()
 private object CompilerPluginMetadata : FirDeclarationDataKey()
 private object OriginalReplSnippet : FirDeclarationDataKey()
+private object ScriptTopLevelDeclaration : FirDeclarationDataKey()
 private object ReplSnippetTopLevelDeclaration : FirDeclarationDataKey()
 private object HasBackingFieldKey : FirDeclarationDataKey()
 private object IsDeserializedPropertyFromAnnotation : FirDeclarationDataKey()
 private object IsDelegatedProperty : FirDeclarationDataKey()
 private object LambdaArgumentHoldsInTruths : FirDeclarationDataKey()
+private object FileNameForPluginGeneratedCallable : FirDeclarationDataKey()
 
 var FirProperty.isFromVararg: Boolean? by FirDeclarationDataRegistry.data(IsFromVarargKey)
 var FirProperty.isReferredViaField: Boolean? by FirDeclarationDataRegistry.data(IsReferredViaField)
@@ -49,6 +51,9 @@ var FirRegularClass.moduleName: String? by FirDeclarationDataRegistry.data(Modul
 var FirDeclaration.compilerPluginMetadata: Map<String, ByteArray>? by FirDeclarationDataRegistry.data(CompilerPluginMetadata)
 var FirDeclaration.originalReplSnippetSymbol: FirReplSnippetSymbol? by FirDeclarationDataRegistry.data(OriginalReplSnippet)
 var FirAnonymousFunction.lambdaArgumentParent: FirQualifiedAccessExpression? by FirDeclarationDataRegistry.data(LambdaArgumentHoldsInTruths)
+var FirCallableDeclaration.fileNameForPluginGeneratedCallable: String? by FirDeclarationDataRegistry.data(FileNameForPluginGeneratedCallable)
+
+var FirDeclaration.isScriptTopLevelDeclaration: Boolean? by FirDeclarationDataRegistry.data(ScriptTopLevelDeclaration)
 
 /**
  * Denotes a declaration on the REPL snippet level - top-level and all nested ones, but not the ones declared inside bodies.

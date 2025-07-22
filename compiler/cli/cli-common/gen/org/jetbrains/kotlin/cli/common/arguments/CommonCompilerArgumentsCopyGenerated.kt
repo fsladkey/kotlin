@@ -11,6 +11,9 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     copyCommonToolArguments(from, to)
 
     to.allowAnyScriptsInSourceRoots = from.allowAnyScriptsInSourceRoots
+    to.allowConditionImpliesReturnsContracts = from.allowConditionImpliesReturnsContracts
+    to.allowContractsOnMoreFunctions = from.allowContractsOnMoreFunctions
+    to.allowHoldsinContract = from.allowHoldsinContract
     to.allowKotlinPackage = from.allowKotlinPackage
     to.allowReifiedTypeInCatch = from.allowReifiedTypeInCatch
     to.annotationDefaultTarget = from.annotationDefaultTarget
@@ -51,6 +54,7 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     to.metadataVersion = from.metadataVersion
     to.multiDollarInterpolation = from.multiDollarInterpolation
     to.multiPlatform = from.multiPlatform
+    to.nameBasedDestructuring = from.nameBasedDestructuring
     to.nestedTypeAliases = from.nestedTypeAliases
     to.newInference = from.newInference
     to.noCheckActual = from.noCheckActual
@@ -83,6 +87,7 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     to.suppressVersionWarnings = from.suppressVersionWarnings
     to.suppressedDiagnostics = from.suppressedDiagnostics?.copyOf()
     to.unrestrictedBuilderInference = from.unrestrictedBuilderInference
+    @Suppress("DEPRECATION")
     to.useFirExperimentalCheckers = from.useFirExperimentalCheckers
     to.useFirIC = from.useFirIC
     to.useFirLT = from.useFirLT
@@ -92,6 +97,7 @@ fun copyCommonCompilerArguments(from: CommonCompilerArguments, to: CommonCompile
     to.verifyIrVisibility = from.verifyIrVisibility
     to.warningLevels = from.warningLevels?.copyOf()
     to.whenGuards = from.whenGuards
+    to.xdataFlowBasedExhaustiveness = from.xdataFlowBasedExhaustiveness
 
     return to
 }

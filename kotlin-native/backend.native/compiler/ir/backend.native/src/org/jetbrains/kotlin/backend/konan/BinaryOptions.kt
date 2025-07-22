@@ -44,6 +44,8 @@ object BinaryOptions : BinaryOptionRegistry() {
 
     val objcExportExplicitMethodFamily by booleanOption()
 
+    val objcExportBlockExplicitParameterNames by booleanOption()
+
     val dumpObjcSelectorToSignatureMapping by stringOption()
 
     val gc by option<GC>(shortcut = { it.shortcut })
@@ -107,6 +109,8 @@ object BinaryOptions : BinaryOptionRegistry() {
     val latin1Strings by booleanOption()
 
     val stackProtector by option<StackProtectorMode>()
+
+    val minidumpLocation by stringOption()
 }
 
 open class BinaryOption<T : Any>(

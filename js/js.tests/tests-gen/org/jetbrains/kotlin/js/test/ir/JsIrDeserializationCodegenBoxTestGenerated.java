@@ -17198,6 +17198,24 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
       }
 
       @Test
+      @TestMetadata("kt77685-sam.kt")
+      public void testKt77685_sam() {
+        runTest("compiler/testData/codegen/box/funInterface/kt77685-sam.kt");
+      }
+
+      @Test
+      @TestMetadata("kt79092.kt")
+      public void testKt79092() {
+        runTest("compiler/testData/codegen/box/funInterface/kt79092.kt");
+      }
+
+      @Test
+      @TestMetadata("kt79092-sam.kt")
+      public void testKt79092_sam() {
+        runTest("compiler/testData/codegen/box/funInterface/kt79092-sam.kt");
+      }
+
+      @Test
       @TestMetadata("multimodule.kt")
       public void testMultimodule() {
         runTest("compiler/testData/codegen/box/funInterface/multimodule.kt");
@@ -27544,6 +27562,12 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
       public void testLambda_kt49360_wrapBlock() {
         runTest("compiler/testData/codegen/box/lambda/lambda_kt49360_wrapBlock.kt");
       }
+
+      @Test
+      @TestMetadata("lambda_kt78666.kt")
+      public void testLambda_kt78666() {
+        runTest("compiler/testData/codegen/box/lambda/lambda_kt78666.kt");
+      }
     }
 
     @Nested
@@ -28970,12 +28994,6 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
         @TestMetadata("starImportOfExpectEnumWithActualTypeAlias.kt")
         public void testStarImportOfExpectEnumWithActualTypeAlias() {
           runTest("compiler/testData/codegen/box/multiplatform/k2/starImportOfExpectEnumWithActualTypeAlias.kt");
-        }
-
-        @Test
-        @TestMetadata("unsignedArrayForLoop.kt")
-        public void testUnsignedArrayForLoop() {
-          runTest("compiler/testData/codegen/box/multiplatform/k2/unsignedArrayForLoop.kt");
         }
 
         @Nested
@@ -31512,6 +31530,12 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
       }
 
       @Test
+      @TestMetadata("kt52230.kt")
+      public void testKt52230() {
+        runTest("compiler/testData/codegen/box/primitiveTypes/kt52230.kt");
+      }
+
+      @Test
       @TestMetadata("kt6590_identityEquals.kt")
       public void testKt6590_identityEquals() {
         runTest("compiler/testData/codegen/box/primitiveTypes/kt6590_identityEquals.kt");
@@ -31629,6 +31653,12 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
       @TestMetadata("unboxComparable.kt")
       public void testUnboxComparable() {
         runTest("compiler/testData/codegen/box/primitiveTypes/unboxComparable.kt");
+      }
+
+      @Test
+      @TestMetadata("virtualCallToCustomNumber.kt")
+      public void testVirtualCallToCustomNumber() {
+        runTest("compiler/testData/codegen/box/primitiveTypes/virtualCallToCustomNumber.kt");
       }
 
       @Nested
@@ -32377,6 +32407,12 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
       @TestMetadata("kt613.kt")
       public void testKt613() {
         runTest("compiler/testData/codegen/box/properties/kt613.kt");
+      }
+
+      @Test
+      @TestMetadata("kt78962.kt")
+      public void testKt78962() {
+        runTest("compiler/testData/codegen/box/properties/kt78962.kt");
       }
 
       @Test
@@ -40154,6 +40190,18 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
       }
 
       @Test
+      @TestMetadata("overrideResolution.kt")
+      public void testOverrideResolution() {
+        runTest("compiler/testData/codegen/box/reified/overrideResolution.kt");
+      }
+
+      @Test
+      @TestMetadata("overrideResolutionWithInlinedFunInKlib.kt")
+      public void testOverrideResolutionWithInlinedFunInKlib() {
+        runTest("compiler/testData/codegen/box/reified/overrideResolutionWithInlinedFunInKlib.kt");
+      }
+
+      @Test
       @TestMetadata("recursiveNewArray.kt")
       public void testRecursiveNewArray() {
         runTest("compiler/testData/codegen/box/reified/recursiveNewArray.kt");
@@ -40303,6 +40351,22 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
         public void testTryCatchReifiedType() {
           runTest("compiler/testData/codegen/box/reified/catchParameter/tryCatchReifiedType.kt");
         }
+      }
+    }
+
+    @Nested
+    @TestMetadata("compiler/testData/codegen/box/returnInExpressionBody")
+    @TestDataPath("$PROJECT_ROOT")
+    public class ReturnInExpressionBody {
+      @Test
+      public void testAllFilesPresentInReturnInExpressionBody() {
+        KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/box/returnInExpressionBody"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JS_IR, true);
+      }
+
+      @Test
+      @TestMetadata("returnInExpressionBody.kt")
+      public void testReturnInExpressionBody() {
+        runTest("compiler/testData/codegen/box/returnInExpressionBody/returnInExpressionBody.kt");
       }
     }
 
@@ -40651,12 +40715,6 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
       @TestMetadata("nestedClassDeclaration.kt")
       public void testNestedClassDeclaration() {
         runTest("compiler/testData/codegen/box/sameFileInSourceAndDependencies/nestedClassDeclaration.kt");
-      }
-
-      @Test
-      @TestMetadata("propertyDeclaration.kt")
-      public void testPropertyDeclaration() {
-        runTest("compiler/testData/codegen/box/sameFileInSourceAndDependencies/propertyDeclaration.kt");
       }
     }
 
@@ -44264,6 +44322,34 @@ public class JsIrDeserializationCodegenBoxTestGenerated extends AbstractJsIrDese
         @TestMetadata("withoutElse.kt")
         public void testWithoutElse() {
           runTest("compiler/testData/codegen/box/when/enumOptimization/withoutElse.kt");
+        }
+      }
+
+      @Nested
+      @TestMetadata("compiler/testData/codegen/box/when/exhaustiveness")
+      @TestDataPath("$PROJECT_ROOT")
+      public class Exhaustiveness {
+        @Test
+        public void testAllFilesPresentInExhaustiveness() {
+          KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/codegen/box/when/exhaustiveness"), Pattern.compile("^(.+)\\.kt$"), null, TargetBackend.JS_IR, true);
+        }
+
+        @Test
+        @TestMetadata("exhaustiveWithNegativeBoolean.kt")
+        public void testExhaustiveWithNegativeBoolean() {
+          runTest("compiler/testData/codegen/box/when/exhaustiveness/exhaustiveWithNegativeBoolean.kt");
+        }
+
+        @Test
+        @TestMetadata("exhaustiveWithNegativeEnum.kt")
+        public void testExhaustiveWithNegativeEnum() {
+          runTest("compiler/testData/codegen/box/when/exhaustiveness/exhaustiveWithNegativeEnum.kt");
+        }
+
+        @Test
+        @TestMetadata("exhaustiveWithNegativeSealed.kt")
+        public void testExhaustiveWithNegativeSealed() {
+          runTest("compiler/testData/codegen/box/when/exhaustiveness/exhaustiveWithNegativeSealed.kt");
         }
       }
 

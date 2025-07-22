@@ -99,7 +99,10 @@ dependencies {
     if (!kotlinBuildProperties.isInIdeaSync) {
         testImplementation(projectTests(":native:native.tests"))
     }
+    testImplementation(project(":compiler:ir.backend.native"))
     testImplementation(project(":native:kotlin-native-utils"))
+    testImplementation(projectTests(":native:native.tests:klib-ir-inliner"))
+    testImplementation(project(":kotlin-util-klib-abi"))
     testImplementation(commonDependency("org.jetbrains.teamcity:serviceMessages"))
 
     // todo: remove unnecessary dependencies
@@ -137,6 +140,11 @@ dependencies {
         }
     }
     implicitDependencies("org.jetbrains.kotlinx:atomicfu-macosx64:0.25.0"){
+        attributes {
+            attribute(Usage.USAGE_ATTRIBUTE, objects.named(KotlinUsages.KOTLIN_API))
+        }
+    }
+    implicitDependencies("org.jetbrains.kotlinx:atomicfu-iossimulatorarm64:0.25.0"){
         attributes {
             attribute(Usage.USAGE_ATTRIBUTE, objects.named(KotlinUsages.KOTLIN_API))
         }
@@ -189,11 +197,13 @@ projectTest(jUnitMode = JUnitMode.JUnit5) {
     val localAtomicfuJsIrRuntimeForTests: FileCollection = atomicfuJsIrRuntimeForTests
     val localAtomicfuJsClasspath: FileCollection = atomicfuJsClasspath
     val localAtomicfuJvmClasspath: FileCollection = atomicfuJvmClasspath
+    val localAtomicfuCompilerPluginClasspath: FileCollection = atomicfuCompilerPluginForTests
 
     doFirst {
         systemProperty("atomicfuJsIrRuntimeForTests.classpath", localAtomicfuJsIrRuntimeForTests.asPath)
         systemProperty("atomicfuJs.classpath", localAtomicfuJsClasspath.asPath)
         systemProperty("atomicfuJvm.classpath", localAtomicfuJvmClasspath.asPath)
+        systemProperty("atomicfu.compiler.plugin", localAtomicfuCompilerPluginClasspath.asPath)
     }
 }
 
@@ -214,7 +224,17 @@ val nativeTest = nativeTest(
     customCompilerDependencies = listOf(atomicfuJvmClasspath),
     customTestDependencies = listOf(atomicfuNativeKlib),
     compilerPluginDependencies = listOf(atomicfuCompilerPluginForTests)
-)
+) {
+    val localAtomicfuNativeKlib: FileCollection = atomicfuNativeKlib
+    doFirst {
+        systemProperty("atomicfuNative.classpath", localAtomicfuNativeKlib.asPath)
+    }
+
+    // To workaround KTI-2421, we make these tests run on JDK 11 instead of the project-default JDK 8.
+    // Kotlin test infra uses reflection to access JDK internals.
+    // With JDK 11, some JVM args are required to silence the warnings caused by that:
+    jvmArgs("--add-opens=java.base/java.io=ALL-UNNAMED")
+}
 
 tasks.named("check") {
     // Depend on the test task that launches Native tests so that it will also run together with tests
@@ -222,4 +242,9 @@ tasks.named("check") {
     if (kotlinBuildProperties.isKotlinNativeEnabled) {
         dependsOn(nativeTest)
     }
+}
+
+val generateTests by generator("org.jetbrains.kotlin.generators.tests.GenerateAtomicfuTestsKt") {
+    javaLauncher.set(project.getToolchainLauncherFor(JdkMajorVersion.JDK_11_0))
+    dependsOn(":compiler:generateTestData")
 }

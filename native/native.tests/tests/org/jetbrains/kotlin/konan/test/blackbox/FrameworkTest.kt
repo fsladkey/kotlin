@@ -85,10 +85,10 @@ abstract class FrameworkTestBase : AbstractNativeSimpleTest() {
             val shortOutText = result.stdout.lines().take(100)
             val shortErrText = result.stderr.lines().take(100)
             fail("FileCheck matching of ${fileCheckDump.absolutePath}\n" +
-                        "with '--check-prefixes ${testCase.checks.fileCheckMatcher.prefixes}'\n" +
-                        "failed with result=$result:\n" +
-                        shortOutText.joinToString("\n") + "\n" +
-                        shortErrText.joinToString("\n")
+                         "with '--check-prefixes ${testCase.checks.fileCheckMatcher.prefixes}'\n" +
+                         "failed with result=$result:\n" +
+                         shortOutText.joinToString("\n") + "\n" +
+                         shortErrText.joinToString("\n")
             )
         }
     }
@@ -352,6 +352,13 @@ abstract class FrameworkTestBase : AbstractNativeSimpleTest() {
     }
 
     @Test
+    fun testKT78837() {
+        val testName = "kt78837"
+        val testCase = generateObjCFramework(testName)
+        compileAndRunSwift(testName, testCase)
+    }
+
+    @Test
     fun testPermanentObjects() {
         val testName = "permanentObjects"
         Assumptions.assumeFalse(testRunSettings.get<GCType>() == GCType.NOOP) { "Test requires GC to actually happen" }
@@ -365,6 +372,20 @@ abstract class FrameworkTestBase : AbstractNativeSimpleTest() {
         val testName = "reflection"
         val testCase = generateObjCFramework(testName, listOf("-opt-in=kotlin.native.internal.InternalForKotlinNative"))
         compileAndRunSwift(testName, testCase)
+    }
+
+    @Test
+    fun testLatin1Disabled() {
+        val testName = "latin1"
+        val testCase = generateObjCFramework(testName, listOf("-Xbinary=latin1Strings=false"))
+        compileAndRunSwift(testName, testCase)
+    }
+
+    @Test
+    fun testLatin1Enabled() {
+        val testName = "latin1"
+        val testCase = generateObjCFramework(testName, listOf("-Xbinary=latin1Strings=true"))
+        compileAndRunSwift(testName, testCase, swiftExtraOpts=listOf("-D", "ENABLE_LATIN1"))
     }
 
     @Test

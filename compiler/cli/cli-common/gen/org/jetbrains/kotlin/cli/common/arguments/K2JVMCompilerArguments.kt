@@ -56,11 +56,6 @@ class K2JVMCompilerArguments : CommonCompilerArguments() {
             field = if (value.isNullOrEmpty()) null else value
         }
 
-    @GradleOption(
-        value = DefaultValue.BOOLEAN_FALSE_DEFAULT,
-        gradleInputType = GradleInputTypes.INPUT,
-        shouldGenerateDeprecatedKotlinOptions = true,
-    )
     @Argument(
         value = "-no-jdk",
         description = "Don't automatically include the Java runtime in the classpath.",
@@ -113,11 +108,6 @@ class K2JVMCompilerArguments : CommonCompilerArguments() {
             field = value
         }
 
-    @GradleOption(
-        value = DefaultValue.STRING_NULL_DEFAULT,
-        gradleInputType = GradleInputTypes.INPUT,
-        shouldGenerateDeprecatedKotlinOptions = true,
-    )
     @Argument(
         value = "-module-name",
         valueDescription = "<name>",
@@ -129,11 +119,6 @@ class K2JVMCompilerArguments : CommonCompilerArguments() {
             field = if (value.isNullOrEmpty()) null else value
         }
 
-    @GradleOption(
-        value = DefaultValue.JVM_TARGET_VERSIONS,
-        gradleInputType = GradleInputTypes.INPUT,
-        shouldGenerateDeprecatedKotlinOptions = true,
-    )
     @Argument(
         value = "-jvm-target",
         valueDescription = "<version>",
@@ -145,11 +130,6 @@ class K2JVMCompilerArguments : CommonCompilerArguments() {
             field = if (value.isNullOrEmpty()) null else value
         }
 
-    @GradleOption(
-        value = DefaultValue.BOOLEAN_FALSE_DEFAULT,
-        gradleInputType = GradleInputTypes.INPUT,
-        shouldGenerateDeprecatedKotlinOptions = true,
-    )
     @Argument(
         value = "-java-parameters",
         description = "Generate metadata for Java 1.8 reflection on method parameters.",
@@ -160,11 +140,6 @@ class K2JVMCompilerArguments : CommonCompilerArguments() {
             field = value
         }
 
-    @GradleOption(
-        value = DefaultValue.JVM_DEFAULT_MODES,
-        gradleInputType = GradleInputTypes.INPUT,
-        gradleName = "jvmDefault",
-    )
     @Argument(
         value = "-jvm-default",
         valueDescription = "{enable|no-compatibility|disable}",
@@ -490,6 +465,7 @@ The default value is 'warn'.""",
             field = if (value.isNullOrEmpty()) null else value
         }
 
+    @Deprecated("This flag is deprecated. Use `-jvm-default` instead")
     @Argument(
         value = "-Xjvm-default",
         valueDescription = "{all|all-compatibility|disable}",
@@ -650,7 +626,7 @@ The default value is 'indy' if language version is 2.0+, and 'class' otherwise."
         value = "-Xindy-allow-annotated-lambdas",
         description = "Allow using 'invokedynamic' for lambda expressions with annotations",
     )
-    var indyAllowAnnotatedLambdas: Boolean = false
+    var indyAllowAnnotatedLambdas: Boolean? = null
         set(value) {
             checkFrozen()
             field = value
@@ -788,6 +764,7 @@ See KT-45671 for more details.""",
             field = value
         }
 
+    @Deprecated("This flag is deprecated")
     @Argument(
         value = "-Xlink-via-signatures",
         description = """Link JVM IR symbols via signatures instead of descriptors.
@@ -840,16 +817,6 @@ inside suspend functions and lambdas to distinguish them from user code by debug
     )
     @Enables(LanguageFeature.ValueClasses)
     var valueClasses: Boolean = false
-        set(value) {
-            checkFrozen()
-            field = value
-        }
-
-    @Argument(
-        value = "-Xir-inliner",
-        description = "Inline functions using the IR inliner instead of the bytecode inliner.",
-    )
-    var enableIrInliner: Boolean = false
         set(value) {
             checkFrozen()
             field = value

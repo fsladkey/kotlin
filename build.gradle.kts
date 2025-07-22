@@ -115,7 +115,7 @@ if (!project.hasProperty("versions.kotlin-native")) {
     extra["versions.kotlin-native"] = if (kotlinBuildProperties.isKotlinNativeEnabled) {
         kotlinBuildProperties.defaultSnapshotVersion
     } else {
-        "2.2.20-dev-5253"
+        "2.2.20-dev-8371"
     }
 }
 
@@ -659,6 +659,7 @@ allprojects {
                 includeVersion("com.google.protobuf", "protobuf-parent", "3.24.4-jb.2")
                 includeVersion("com.google.protobuf", "protobuf-java", "3.24.4-jb.2")
                 includeVersion("com.google.protobuf", "protobuf-bom", "3.24.4-jb.2")
+                includeModuleByRegex("org\\.jetbrains", "(syntax\\-api|lang\\-syntax).*")
             }
         }
 
@@ -940,7 +941,6 @@ tasks {
 
     register("miscTest") {
         dependsOn("coreLibsTest")
-        dependsOn("gradlePluginTest")
         dependsOn("toolsTest")
         dependsOn("examplesTest")
         dependsOn(":kotlin-build-common:test")
@@ -1096,10 +1096,11 @@ tasks {
         group = "publishing"
         workingDir = rootProject.projectDir.resolve("libraries")
         commandLine = getMvnwCmd() + listOf(
-            "clean", "deploy", "--activate-profiles=noTest",
+            "clean", "deploy", "--activate-profiles=noTest,local-bootstrap",
             "-Dinvoker.skip=true", "-DskipTests",
             "-Ddeploy-snapshot-repo=local",
-            "-Ddeploy-snapshot-url=file://${rootProject.projectDir.resolve("build/repo")}"
+            "-Ddeploy-snapshot-url=file://${rootProject.projectDir.resolve("build/repo")}",
+            "-Dlocal-bootstrap-url=file://${rootProject.projectDir.resolve("build/repo")}",
         )
 
         val jdkToolchain1_8 = getToolchainJdkHomeFor(JdkMajorVersion.JDK_1_8)
@@ -1110,9 +1111,17 @@ tasks {
 
     // 'mvnPublish' is required for local bootstrap
     if (!kotlinBuildProperties.isTeamcityBuild) {
-        register("publish") {
+        val localPublishTask = register("publish") {
             group = "publishing"
-            dependsOn(mvnPublishTask)
+            finalizedBy(mvnPublishTask)
+        }
+
+        subprojects {
+            tasks.configureEach {
+                if (name == "publish") {
+                    localPublishTask.get().dependsOn(this)
+                }
+            }
         }
     }
 

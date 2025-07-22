@@ -14,6 +14,8 @@ import org.jetbrains.kotlin.analysis.api.symbols.KaDeclarationSymbol
 import org.jetbrains.kotlin.analysis.api.types.KaType
 import org.jetbrains.kotlin.name.FqName
 import org.jetbrains.kotlin.sir.*
+import org.jetbrains.kotlin.sir.providers.impl.BridgeProvider.BridgeFunctionProxy
+import org.jetbrains.kotlin.sir.providers.impl.StandaloneSirTypeNamer
 
 
 /**
@@ -31,7 +33,8 @@ public interface SirSession :
     SirModuleProvider,
     SirTypeProvider,
     SirVisibilityChecker,
-    SirChildrenProvider
+    SirChildrenProvider,
+    SirBridgeProvider
 {
     public val sirSession: SirSession
         get() = this
@@ -48,6 +51,7 @@ public interface SirSession :
     public val typeProvider: SirTypeProvider
     public val visibilityChecker: SirVisibilityChecker
     public val childrenProvider: SirChildrenProvider
+    public val bridgeProvider: SirBridgeProvider
 
     override val errorTypeStrategy: SirTypeProvider.ErrorTypeStrategy
         get() = typeProvider.errorTypeStrategy
@@ -95,6 +99,34 @@ public interface SirSession :
 
     override fun Sequence<KaDeclarationSymbol>.extractDeclarations(kaSession: KaSession): Sequence<SirDeclaration> =
         with(childrenProvider) { this@extractDeclarations.extractDeclarations(kaSession) }
+
+    override fun generateFunctionBridge(
+        baseBridgeName: String,
+        explicitParameters: List<SirParameter>,
+        returnType: SirType,
+        kotlinFqName: List<String>,
+        selfParameter: SirParameter?,
+        extensionReceiverParameter: SirParameter?,
+        errorParameter: SirParameter?
+    ): BridgeFunctionProxy? = with(bridgeProvider) {
+        generateFunctionBridge(
+            baseBridgeName,
+            explicitParameters,
+            returnType,
+            kotlinFqName,
+            selfParameter,
+            extensionReceiverParameter,
+            errorParameter
+        )
+    }
+
+    override fun generateTypeBridge(
+        kotlinFqName: List<String>,
+        swiftFqName: String,
+        swiftSymbolName: String,
+    ): SirTypeBindingBridge? = with(bridgeProvider) {
+        generateTypeBridge(kotlinFqName, swiftFqName, swiftSymbolName)
+    }
 }
 
 /**
@@ -152,6 +184,22 @@ public sealed interface SirTranslationResult {
 
     public data class RegularFunction(public val declaration: SirFunction) : SirTranslationResult {
         override val allDeclarations: List<SirDeclaration> = listOf(declaration)
+        override val primaryDeclaration: SirDeclaration get() = declaration
+    }
+
+    public data class OperatorFunction(
+        public val declaration: SirFunction,
+        public val supplementaryDeclarations: List<SirDeclaration>
+    ) : SirTranslationResult {
+        override val allDeclarations: List<SirDeclaration> = listOf(declaration) + supplementaryDeclarations
+        override val primaryDeclaration: SirDeclaration get() = declaration
+    }
+
+    public data class OperatorSubscript(
+        public val declaration: SirSubscript,
+        public val supplementaryDeclarations: List<SirDeclaration>
+    ) : SirTranslationResult {
+        override val allDeclarations: List<SirDeclaration> = listOf(declaration) + supplementaryDeclarations
         override val primaryDeclaration: SirDeclaration get() = declaration
     }
 
@@ -274,7 +322,40 @@ public interface SirTypeProvider {
     ): SirType
 }
 
+/**
+ * Generates a list of [SirBridge] for given [SirDeclaration].
+ */
+public interface SirBridgeProvider {
+    public fun generateFunctionBridge(
+        baseBridgeName: String,
+        explicitParameters: List<SirParameter>,
+        returnType: SirType,
+        kotlinFqName: List<String>,
+        selfParameter: SirParameter?,
+        extensionReceiverParameter: SirParameter?,
+        errorParameter: SirParameter?
+    ): BridgeFunctionProxy?
 
+    public fun generateTypeBridge(
+        kotlinFqName: List<String>,
+        swiftFqName: String,
+        swiftSymbolName: String,
+    ): SirTypeBindingBridge?
+}
+
+/**
+ * Matches a [SirType] to its declaration name in either kotlin or swift.
+ */
+public interface SirTypeNamer {
+    public enum class KotlinNameType {
+        FQN, PARAMETRIZED
+    }
+
+    public fun swiftFqName(type: SirType): String
+    public fun kotlinFqName(sirType: SirType, nameType: KotlinNameType): String
+}
+
+public fun SirTypeNamer(): SirTypeNamer = StandaloneSirTypeNamer
 
 public interface SirVisibilityChecker {
     /**

@@ -1,9 +1,6 @@
-Test key, Issue, State (optional: MUTE or FAIL), Status (optional: FLAKY)
-org.jetbrains.kotlin.daemon.CompilerDaemonTest.testParallelDaemonStart,,,
-org.jetbrains.kotlin.gradle.JsSetupConfigurationCacheIT.checkNodeJsSetup,,,FLAKY
-org.jetbrains.kotlin.test.runners.PhasedJvmDiagnosticPsiTestGenerated.Tests.Crv.testBasicJInterop,,,
-org.jetbrains.kotlin.test.runners.FirLightTreeOldFrontendDiagnosticsWithLatestLanguageVersionTestGenerated.Tests.Crv.testBasicJInterop,,,
-org.jetbrains.kotlin.test.runners.PhasedJvmDiagnosticLightTreeTestGenerated.Tests.Crv.testBasicJInterop,,,
-org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostic.compiler.based.LLReversedDiagnosticsFe10TestGenerated.Tests.Crv.testBasicJInterop,,,
-org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostic.compiler.based.LLDiagnosticsFe10TestGenerated.Tests.Crv.testBasicJInterop,,,
-org.jetbrains.kotlin.analysis.low.level.api.fir.diagnostic.compiler.based.PartialBodyAnalysisDiagnosticCompilerTestDataTestGenerated.Tests.Crv.testBasicJInterop,,,
+Test key, Issue, Status (optional: FLAKY)
+org.jetbrains.kotlin.daemon.CompilerDaemonTest.testParallelDaemonStart,,STABLE
+org.jetbrains.kotlin.gradle.JsSetupConfigurationCacheIT.checkNodeJsSetup,,FLAKY
+org.jetbrains.kotlin.js.test.fir.FirLightTreeJsOldFrontendDiagnosticsTestGenerated.Export.testPrimitiveNullableTypes,,STABLE
+org.jetbrains.kotlin.js.test.fir.FirPsiJsOldFrontendDiagnosticsTestGenerated.Export.testPrimitiveNullableTypes,,STABLE
+org.jetbrains.kotlin.gradle.ComposeIT.testComposeDefaultParamsInOpenFunctionK1ToK2[AGP 8.11.1 with Gradle 8.14: Run test against older versions of open @Composable function],,STABLE

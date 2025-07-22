@@ -103,6 +103,12 @@ public class WasmPartialLinkageNoICTestCaseGenerated extends AbstractWasmPartial
   }
 
   @Test
+  @TestMetadata("inlineFunctions-withInliningInKlibsNative")
+  public void testInlineFunctions_withInliningInKlibsNative() {
+    runTest("compiler/testData/klib/partial-linkage/inlineFunctions-withInliningInKlibsNative/");
+  }
+
+  @Test
   @TestMetadata("noNonImplementedCallableFalsePositives")
   public void testNoNonImplementedCallableFalsePositives() {
     runTest("compiler/testData/klib/partial-linkage/noNonImplementedCallableFalsePositives/");
@@ -172,6 +178,12 @@ public class WasmPartialLinkageNoICTestCaseGenerated extends AbstractWasmPartial
   @TestMetadata("richReferencesOperations")
   public void testRichReferencesOperations() {
     runTest("compiler/testData/klib/partial-linkage/richReferencesOperations/");
+  }
+
+  @Test
+  @TestMetadata("richReferencesOperationsNative")
+  public void testRichReferencesOperationsNative() {
+    runTest("compiler/testData/klib/partial-linkage/richReferencesOperationsNative/");
   }
 
   @Test

@@ -12,13 +12,9 @@ import org.jetbrains.kotlin.*
 import org.jetbrains.kotlin.ElementTypeUtils.isExpression
 import org.jetbrains.kotlin.KtNodeTypes.*
 import org.jetbrains.kotlin.builtins.StandardNames
-import org.jetbrains.kotlin.descriptors.ClassKind
-import org.jetbrains.kotlin.descriptors.Modality
-import org.jetbrains.kotlin.descriptors.Visibilities
-import org.jetbrains.kotlin.descriptors.Visibility
+import org.jetbrains.kotlin.descriptors.*
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget
 import org.jetbrains.kotlin.descriptors.annotations.AnnotationUseSiteTarget.*
-import org.jetbrains.kotlin.descriptors.isObject
 import org.jetbrains.kotlin.fir.*
 import org.jetbrains.kotlin.fir.analysis.firstFunctionCallInBlockHasLambdaArgumentWithLabel
 import org.jetbrains.kotlin.fir.analysis.isCallTheFirstStatement
@@ -32,6 +28,7 @@ import org.jetbrains.kotlin.fir.declarations.utils.DanglingTypeConstraint
 import org.jetbrains.kotlin.fir.declarations.utils.addDeclarations
 import org.jetbrains.kotlin.fir.declarations.utils.addDefaultBoundIfNecessary
 import org.jetbrains.kotlin.fir.declarations.utils.danglingTypeConstraints
+import org.jetbrains.kotlin.fir.declarations.utils.isScriptTopLevelDeclaration
 import org.jetbrains.kotlin.fir.diagnostics.*
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.builder.*
@@ -1396,9 +1393,9 @@ class LightTreeRawFirDeclarationBuilder(
             else -> identifier.nameAsSafeName()
         }
         val propertySymbol = if (isLocal) {
-            FirPropertySymbol(propertyName)
+            FirLocalPropertySymbol()
         } else {
-            FirPropertySymbol(callableIdForName(propertyName))
+            FirRegularPropertySymbol(callableIdForName(propertyName))
         }
 
         withContainerSymbol(propertySymbol, isLocal) {
@@ -1460,7 +1457,6 @@ class LightTreeRawFirDeclarationBuilder(
                 )
 
                 if (isLocal) {
-                    this.isLocal = true
                     val delegateBuilder = delegate?.let {
                         FirWrappedDelegateExpressionBuilder().apply {
                             source = delegateSource?.fakeElement(KtFakeSourceElementKind.WrappedDelegate)
@@ -1481,8 +1477,6 @@ class LightTreeRawFirDeclarationBuilder(
                         explicitDeclarationSource = propertySource,
                     )
                 } else {
-                    this.isLocal = false
-
                     dispatchReceiverType = currentDispatchReceiverType()
                     withCapturedTypeParameters(true, propertySource, firTypeParameters) {
                         typeParameters += firTypeParameters
@@ -1659,7 +1653,7 @@ class LightTreeRawFirDeclarationBuilder(
             origin = FirDeclarationOrigin.Source
             source = sourceElement.fakeElement(KtFakeSourceElementKind.DefaultAccessor)
             returnTypeRef = propertyTypeRefToUse
-            symbol = FirValueParameterSymbol(StandardNames.DEFAULT_VALUE_PARAMETER)
+            symbol = FirValueParameterSymbol()
         }
         var block: LighterASTNode? = null
         var expression: LighterASTNode? = null
@@ -1796,7 +1790,7 @@ class LightTreeRawFirDeclarationBuilder(
                 origin = FirDeclarationOrigin.Source
                 returnTypeRef = returnType
                 name = StandardNames.BACKING_FIELD
-                symbol = FirBackingFieldSymbol(CallableId(name))
+                symbol = FirBackingFieldSymbol()
                 this.status = status
                 modifiers?.convertAnnotationsTo(annotations)
                 annotations += annotationsFromProperty
@@ -1891,7 +1885,7 @@ class LightTreeRawFirDeclarationBuilder(
             origin = FirDeclarationOrigin.Source
             returnTypeRef = if (firValueParameter.returnTypeRef == implicitType) propertyTypeRef else firValueParameter.returnTypeRef
             name = firValueParameter.name
-            symbol = FirValueParameterSymbol(firValueParameter.name)
+            symbol = FirValueParameterSymbol()
             defaultValue = firValueParameter.defaultValue
             isCrossinline = calculatedModifiers.hasCrossinline() || firValueParameter.isCrossinline
             isNoinline = calculatedModifiers.hasNoinline() || firValueParameter.isNoinline
@@ -2681,7 +2675,7 @@ class LightTreeRawFirDeclarationBuilder(
         }
 
         val name = convertValueParameterName(identifier.nameAsSafeName(), valueParameterDeclaration) { identifier }
-        val valueParameterSymbol = FirValueParameterSymbol(name)
+        val valueParameterSymbol = FirValueParameterSymbol()
         withContainerSymbol(valueParameterSymbol, isLocal = !valueParameterDeclaration.isAnnotationOwner) {
             valueParameter.forEachChildren {
                 when (it.tokenType) {
@@ -2774,7 +2768,7 @@ class LightTreeRawFirDeclarationBuilder(
                     // Luckily, legacy context receivers are getting removed soon.
                     this.name = customLabelName ?: labelNameFromTypeRef ?: SpecialNames.UNDERSCORE_FOR_UNUSED_VAR
 
-                    this.symbol = FirValueParameterSymbol(name)
+                    this.symbol = FirValueParameterSymbol()
                     withContainerSymbol(this.symbol) {
                         this.returnTypeRef = typeReference?.let { convertType(it) }
                             ?: buildErrorTypeRef { diagnostic = ConeSimpleDiagnostic("Type missing") }
@@ -2827,6 +2821,7 @@ class LightTreeRawFirDeclarationBuilder(
                                 isLocal = isLast,
                             )
 
+                            initializer.isScriptTopLevelDeclaration = true
                             declarations.add(initializer)
                         }
 
@@ -2840,6 +2835,7 @@ class LightTreeRawFirDeclarationBuilder(
                                 extractedAnnotations = destructuringDeclaration.annotations,
                                 origin = FirDeclarationOrigin.Synthetic.ScriptTopLevelDestructuringDeclarationContainer
                             ).apply {
+                                isScriptTopLevelDeclaration = true
                                 isDestructuringDeclarationContainerVariable = true
                             }
                             addDestructuringVariables(
@@ -2853,10 +2849,14 @@ class LightTreeRawFirDeclarationBuilder(
                                 forceLocal = false,
                             ) {
                                 configureScriptDestructuringDeclarationEntry(it, destructuringContainerVar)
+                                it.isScriptTopLevelDeclaration = true
                             }
                         }
 
-                        else -> convertDeclarationFromClassBody(declarationSource, declarations, classWrapper = null, modifierLists)
+                        else -> {
+                            convertDeclarationFromClassBody(declarationSource, declarations, classWrapper = null, modifierLists)
+                            declarations.lastOrNull()?.isScriptTopLevelDeclaration = true
+                        }
                     }
                 }
                 convertDanglingModifierListsInClassBody(modifierLists, declarations)

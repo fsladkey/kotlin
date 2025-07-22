@@ -915,7 +915,7 @@ fun FirPropertySymbol.processOverriddenPropertiesWithActionSafe(
     action: (FirPropertySymbol) -> ProcessorAction,
 ) {
     val firTypeScope = containingClassUnsubstitutedScope() ?: return
-    firTypeScope.processPropertiesByName(callableId.callableName) { }
+    firTypeScope.processPropertiesByName(name) { }
     firTypeScope.processOverriddenProperties(this, action)
 }
 
@@ -962,7 +962,8 @@ fun FirElement.isLhsOfAssignment(): Boolean {
 }
 
 fun ConeKotlinType.leastUpperBound(session: FirSession): ConeKotlinType {
-    val upperBounds = collectUpperBounds().takeIf { it.isNotEmpty() } ?: return session.builtinTypes.nullableAnyType.coneType
+    val upperBounds = collectUpperBounds(session.typeContext).takeIf { it.isNotEmpty() }
+        ?: return session.builtinTypes.nullableAnyType.coneType
     return ConeTypeIntersector.intersectTypes(session.typeContext, upperBounds)
 }
 
@@ -1052,7 +1053,7 @@ fun KtSourceElement?.requireFeatureSupport(
     feature: LanguageFeature,
     positioningStrategy: SourceElementPositioningStrategy? = null,
 ) {
-    if (!context.languageVersionSettings.supportsFeature(feature)) {
+    if (!feature.isEnabled()) {
         reporter.reportOn(this, FirErrors.UNSUPPORTED_FEATURE, feature to context.languageVersionSettings, positioningStrategy)
     }
 }

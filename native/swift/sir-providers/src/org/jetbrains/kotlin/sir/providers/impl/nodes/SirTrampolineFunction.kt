@@ -22,6 +22,7 @@ public class SirTrampolineFunction(
     override val isOverride: Boolean get() = false
     override val isInstance: Boolean get() = false
     override val modality: SirModality get() = SirModality.UNSPECIFIED
+    override val fixity: SirFixity? get() = source.fixity
 
     override val attributes: List<SirAttribute> get() = source.attributes
 
@@ -39,6 +40,8 @@ public class SirTrampolineFunction(
     }
 
     override val errorType: SirType get() = source.errorType
+
+    override val bridges: List<SirBridge> = emptyList()
 
     override var body: SirFunctionBody?
         get() = SirFunctionBody(

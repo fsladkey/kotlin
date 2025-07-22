@@ -18,10 +18,10 @@ import org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirGlobalResolveCompone
 import org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirLazyDeclarationResolver
 import org.jetbrains.kotlin.analysis.low.level.api.fir.LLFirModuleResolveComponents
 import org.jetbrains.kotlin.analysis.low.level.api.fir.projectStructure.*
-import org.jetbrains.kotlin.analysis.low.level.api.fir.providers.LLFirFirClassByPsiClassProvider
 import org.jetbrains.kotlin.analysis.low.level.api.fir.providers.LLFirIdeRegisteredPluginAnnotations
 import org.jetbrains.kotlin.analysis.low.level.api.fir.providers.LLFirLibrarySessionProvider
 import org.jetbrains.kotlin.analysis.low.level.api.fir.providers.LLFirProvider
+import org.jetbrains.kotlin.analysis.low.level.api.fir.providers.LLNameConflictsTracker
 import org.jetbrains.kotlin.analysis.low.level.api.fir.symbolProviders.LLDanglingFileDependenciesSymbolProvider
 import org.jetbrains.kotlin.analysis.low.level.api.fir.symbolProviders.LLDependenciesSymbolProvider
 import org.jetbrains.kotlin.analysis.low.level.api.fir.symbolProviders.LLFirJavaSymbolProvider
@@ -37,6 +37,7 @@ import org.jetbrains.kotlin.assignment.plugin.k2.FirAssignmentPluginExtensionReg
 import org.jetbrains.kotlin.cli.plugins.processCompilerPluginsOptions
 import org.jetbrains.kotlin.compiler.plugin.ExperimentalCompilerApi
 import org.jetbrains.kotlin.config.*
+import org.jetbrains.kotlin.fir.FirNameConflictsTracker
 import org.jetbrains.kotlin.fir.PrivateSessionConstructor
 import org.jetbrains.kotlin.fir.SessionConfiguration
 import org.jetbrains.kotlin.fir.analysis.checkersComponent
@@ -114,10 +115,10 @@ internal abstract class LLFirAbstractSessionFactory(protected val project: Proje
             register(FirKotlinScopeProvider::class, scopeProvider)
 
             registerAllCommonComponents(languageVersionSettings)
+            registerSourceLikeComponents()
 
             registerCommonComponentsAfterExtensionsAreConfigured()
             registerJavaComponents(JavaModuleResolver.getInstance(project))
-
 
             val provider = LLFirProvider(
                 this,
@@ -212,6 +213,7 @@ internal abstract class LLFirAbstractSessionFactory(protected val project: Proje
             register(FirKotlinScopeProvider::class, scopeProvider)
 
             registerAllCommonComponents(languageVersionSettings)
+            registerSourceLikeComponents()
 
             registerCommonComponentsAfterExtensionsAreConfigured()
             registerJavaComponents(JavaModuleResolver.getInstance(project))
@@ -281,6 +283,7 @@ internal abstract class LLFirAbstractSessionFactory(protected val project: Proje
             register(FirKotlinScopeProvider::class, scopeProvider)
 
             registerAllCommonComponents(languageVersionSettings)
+            registerSourceLikeComponents()
 
             val firProvider = LLFirProvider(
                 this,
@@ -306,7 +309,6 @@ internal abstract class LLFirAbstractSessionFactory(protected val project: Proje
             }
 
             register(DEPENDENCIES_SYMBOL_PROVIDER_QUALIFIED_KEY, dependencyProvider)
-            register(LLFirFirClassByPsiClassProvider::class, LLFirFirClassByPsiClassProvider(this))
 
             LLFirSessionConfigurator.configure(this)
 
@@ -416,7 +418,6 @@ internal abstract class LLFirAbstractSessionFactory(protected val project: Proje
             }
 
             register(DEPENDENCIES_SYMBOL_PROVIDER_QUALIFIED_KEY, dependencyProvider)
-            register(LLFirFirClassByPsiClassProvider::class, LLFirFirClassByPsiClassProvider(this))
 
             val context = LibrarySessionCreationContext(contentScope, firProvider, dependencyProvider)
             additionalSessionConfiguration(context)
@@ -469,7 +470,6 @@ internal abstract class LLFirAbstractSessionFactory(protected val project: Proje
                 },
             )
 
-            register(LLFirFirClassByPsiClassProvider::class, LLFirFirClassByPsiClassProvider(this))
             register(FirProvider::class, LLFirLibrarySessionProvider(symbolProvider))
             register(FirSymbolProvider::class, symbolProvider)
 
@@ -504,6 +504,7 @@ internal abstract class LLFirAbstractSessionFactory(protected val project: Proje
             register(FirKotlinScopeProvider::class, scopeProvider)
 
             registerAllCommonComponents(languageVersionSettings)
+            registerSourceLikeComponents()
 
             val firProvider = LLFirProvider(
                 this,
@@ -574,7 +575,6 @@ internal abstract class LLFirAbstractSessionFactory(protected val project: Proje
             }
 
             register(DEPENDENCIES_SYMBOL_PROVIDER_QUALIFIED_KEY, dependencyProvider)
-            register(LLFirFirClassByPsiClassProvider::class, LLFirFirClassByPsiClassProvider(this))
 
             LLFirSessionConfigurator.configure(this)
 
@@ -708,6 +708,10 @@ internal abstract class LLFirAbstractSessionFactory(protected val project: Proje
         registerCommonComponents(languageVersionSettings)
         registerResolveComponents()
         registerDefaultComponents()
+    }
+
+    private fun LLFirSession.registerSourceLikeComponents() {
+        register(FirNameConflictsTracker::class, LLNameConflictsTracker(this))
     }
 
     /**

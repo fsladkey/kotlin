@@ -81,7 +81,6 @@ import org.jetbrains.kotlin.utils.ResolvedDependencyArtifactPath as KResolvedDep
 import org.jetbrains.kotlin.utils.ResolvedDependencyId as KResolvedDependencyId
 import org.jetbrains.kotlin.utils.ResolvedDependencyVersion as KResolvedDependencyVersion
 
-// TODO: It's just temporary tasks used while KN isn't integrated with Big Kotlin compilation infrastructure.
 // region Useful extensions
 internal fun MutableList<String>.addArg(parameter: String, value: String) {
     add(parameter)
@@ -229,12 +228,6 @@ abstract class AbstractKotlinNativeCompile<
     @get:Input
     val kotlinNativeVersion: String = project.nativeProperties.kotlinNativeVersion.get()
 
-    @get:Input
-    val artifactVersion = project.version.toString()
-
-    @get:Input
-    internal val useEmbeddableCompilerJar: Provider<Boolean> = project.nativeProperties.shouldUseEmbeddableCompilerJar
-
     @get:Internal
     open val outputFile: Provider<File>
         get() = destinationDirectory.flatMap {
@@ -304,16 +297,6 @@ internal constructor(
     UsesClassLoadersCachingBuildService,
     UsesKonanPropertiesBuildService {
 
-    // used by KSP1 - should be removed via KT-67992 in 2.1.0 release
-    @Deprecated("'execOperations' parameter was removed")
-    internal constructor(
-        compilation: KotlinCompilationInfo,
-        compilerOptions: KotlinNativeCompilerOptions,
-        objectFactory: ObjectFactory,
-        providerFactory: ProviderFactory,
-        @Suppress("UNUSED_PARAMETER") execOperations: ExecOperations,
-    ) : this(compilation, compilerOptions, objectFactory, providerFactory)
-
     @get:Input
     override val outputKind = LIBRARY
 
@@ -322,6 +305,9 @@ internal constructor(
 
     @get:Input
     override val debuggable = true
+
+    @get:Input
+    val exportKdoc: Property<Boolean> = objectFactory.property(true)
 
     @get:Internal
     override val baseName: String by lazy {
@@ -447,7 +433,6 @@ internal constructor(
             classLoadersCachingService,
             forceDisableRunningInProcess,
             useXcodeMessageStyle,
-            useEmbeddableCompilerJar,
             actualNativeHomeDirectory,
             runnerJvmArgs,
             konanPropertiesService,
@@ -479,6 +464,7 @@ internal constructor(
             args.moduleName = compilerOptions.moduleName.get()
             args.shortModuleName = shortModuleName
             args.multiPlatform = true
+            @Suppress("DEPRECATION")
             args.noendorsedlibs = true
             args.outputName = outputFile.get().absolutePath
             args.optimization = optimized
@@ -489,6 +475,7 @@ internal constructor(
             args.metadataKlib = sharedCompilationData != null
             args.nodefaultlibs = sharedCompilationData != null
             args.nostdlib = true
+            args.exportKDoc = exportKdoc.get()
             args.manifestFile = sharedCompilationData?.manifestFile?.absolutePath
             args.nopack = produceUnpackagedKlib.get()
 
@@ -607,7 +594,7 @@ internal constructor(
                 output.parentFile.mkdirs()
 
                 buildFusService.orNull?.reportFusMetrics {
-                    NativeCompilerOptionMetrics.collectMetrics(compilerOptions, it)
+                    NativeCompilerOptionMetrics.collectMetrics(compilerOptions, separateKmpCompilation.get(), it)
                 }
 
                 ArgumentUtils.convertArgumentsToStringList(arguments)
@@ -1180,7 +1167,6 @@ abstract class CInteropProcess @Inject internal constructor(params: Params) :
     @get:Internal
     val konanHome: Provider<String> = kotlinNativeProvider.flatMap { it.bundleDirectory }
 
-    private val shouldUseEmbeddableCompilerJar = project.nativeProperties.shouldUseEmbeddableCompilerJar
     private val actualNativeHomeDirectory = project.nativeProperties.actualNativeHomeDirectory
     private val runnerJvmArgs = project.nativeProperties.jvmArgs
     private val useXcodeMessageStyle = project.useXcodeMessageStyle
@@ -1189,7 +1175,6 @@ abstract class CInteropProcess @Inject internal constructor(params: Params) :
         get() = objectFactory.KotlinNativeCInteropRunner(
             metrics,
             classLoadersCachingService,
-            shouldUseEmbeddableCompilerJar,
             actualNativeHomeDirectory,
             runnerJvmArgs,
             useXcodeMessageStyle,

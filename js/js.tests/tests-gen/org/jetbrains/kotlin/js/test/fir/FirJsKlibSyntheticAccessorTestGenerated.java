@@ -1112,6 +1112,12 @@ public class FirJsKlibSyntheticAccessorTestGenerated extends AbstractFirJsKlibSy
       }
 
       @Test
+      @TestMetadata("usePrivateMethodFromInternalInlineFakeOverride.kt")
+      public void testUsePrivateMethodFromInternalInlineFakeOverride() {
+        runTest("compiler/testData/klib/syntheticAccessors/privateMember/singleFile/usePrivateMethodFromInternalInlineFakeOverride.kt");
+      }
+
+      @Test
       @TestMetadata("usePrivateMethodFromLocalObjectInsideInternalInline.kt")
       public void testUsePrivateMethodFromLocalObjectInsideInternalInline() {
         runTest("compiler/testData/klib/syntheticAccessors/privateMember/singleFile/usePrivateMethodFromLocalObjectInsideInternalInline.kt");
@@ -1375,6 +1381,18 @@ public class FirJsKlibSyntheticAccessorTestGenerated extends AbstractFirJsKlibSy
       @TestMetadata("potentiallyClashingVarAccessors.kt")
       public void testPotentiallyClashingVarAccessors() {
         runTest("compiler/testData/klib/syntheticAccessors/topLevelPrivate/crossFilePrivateLeak/potentiallyClashingVarAccessors.kt");
+      }
+
+      @Test
+      @TestMetadata("syntheticAccessorDefaultValues.kt")
+      public void testSyntheticAccessorDefaultValues() {
+        runTest("compiler/testData/klib/syntheticAccessors/topLevelPrivate/crossFilePrivateLeak/syntheticAccessorDefaultValues.kt");
+      }
+
+      @Test
+      @TestMetadata("syntheticAccessorTypeParameters.kt")
+      public void testSyntheticAccessorTypeParameters() {
+        runTest("compiler/testData/klib/syntheticAccessors/topLevelPrivate/crossFilePrivateLeak/syntheticAccessorTypeParameters.kt");
       }
 
       @Test

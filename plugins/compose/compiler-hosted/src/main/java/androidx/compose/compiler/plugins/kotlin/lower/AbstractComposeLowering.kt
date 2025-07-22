@@ -150,8 +150,7 @@ abstract class AbstractComposeLowering(
                 classifier,
                 isMarkedNullable(),
                 List(arguments.size) { IrStarProjectionImpl },
-                annotations,
-                abbreviation
+                annotations
             )
 
             else -> this
@@ -735,11 +734,13 @@ abstract class AbstractComposeLowering(
     protected fun irBlock(
         type: IrType = context.irBuiltIns.unitType,
         origin: IrStatementOrigin? = null,
+        startOffset: Int = UNDEFINED_OFFSET,
+        endOffset: Int = UNDEFINED_OFFSET,
         statements: List<IrStatement>,
     ): IrBlock {
         return IrBlockImpl(
-            UNDEFINED_OFFSET,
-            UNDEFINED_OFFSET,
+            startOffset,
+            endOffset,
             type,
             origin,
             statements
@@ -886,7 +887,7 @@ abstract class AbstractComposeLowering(
             startOffset = SYNTHETIC_OFFSET
             endOffset = SYNTHETIC_OFFSET
             name = propName
-            visibility = DescriptorVisibilities.PUBLIC
+            visibility = this@buildStabilityProp.visibility
         }.also { property ->
             property.parent = parent
             stabilityField.correspondingPropertySymbol = property.symbol
@@ -914,7 +915,7 @@ abstract class AbstractComposeLowering(
             endOffset = this@buildStabilityGetter.endOffset
             name = getterName
             returnType = stabilityField.type
-            visibility = DescriptorVisibilities.PUBLIC
+            visibility = this@buildStabilityGetter.visibility
             origin = IrDeclarationOrigin.GeneratedByPlugin(ComposeCompilerKey)
         }.also { fn ->
             fn.parent = parent
@@ -1687,9 +1688,9 @@ abstract class AbstractComposeLowering(
         return origin != IrDeclarationOrigin.LOCAL_FUNCTION_FOR_LAMBDA
     }
 
-    private fun IrFunction.isVirtualFunctionWithDefaultParam(): Boolean =
+    protected fun IrFunction.isVirtualFunctionWithDefaultParam(): Boolean =
         this is IrSimpleFunction &&
-                (isVirtualFunctionWithDefaultParam != null ||
+                (isVirtualFunctionWithDefaultParam == true ||
                         overriddenSymbols.any { it.owner.isVirtualFunctionWithDefaultParam() })
 }
 

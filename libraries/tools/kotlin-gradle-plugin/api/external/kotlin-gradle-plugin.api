@@ -31,6 +31,8 @@ public abstract class org/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformExtensi
 	public fun applyHierarchyTemplate (Lorg/jetbrains/kotlin/gradle/plugin/KotlinHierarchyTemplate;Lkotlin/jvm/functions/Function1;)V
 	public fun compilerOptions (Lkotlin/jvm/functions/Function1;)V
 	public fun compilerOptions (Lorg/gradle/api/Action;)V
+	public final fun dependencies (Lkotlin/jvm/functions/Function1;)V
+	public final fun dependencies (Lorg/gradle/api/Action;)V
 	public fun dependencies (Lorg/gradle/api/NamedDomainObjectProvider;Lkotlin/jvm/functions/Function1;)V
 	public fun getAndroidInstrumentedTest (Lorg/gradle/api/NamedDomainObjectContainer;)Lorg/gradle/api/NamedDomainObjectProvider;
 	public fun getAndroidMain (Lorg/gradle/api/NamedDomainObjectContainer;)Lorg/gradle/api/NamedDomainObjectProvider;
@@ -115,6 +117,8 @@ public abstract class org/jetbrains/kotlin/gradle/dsl/KotlinMultiplatformExtensi
 	public fun getWatchosTest (Lorg/gradle/api/NamedDomainObjectContainer;)Lorg/gradle/api/NamedDomainObjectProvider;
 	public fun getWatchosX64Main (Lorg/gradle/api/NamedDomainObjectContainer;)Lorg/gradle/api/NamedDomainObjectProvider;
 	public fun getWatchosX64Test (Lorg/gradle/api/NamedDomainObjectContainer;)Lorg/gradle/api/NamedDomainObjectProvider;
+	public fun getWebMain (Lorg/gradle/api/NamedDomainObjectContainer;)Lorg/gradle/api/NamedDomainObjectProvider;
+	public fun getWebTest (Lorg/gradle/api/NamedDomainObjectContainer;)Lorg/gradle/api/NamedDomainObjectProvider;
 	public fun invoke (Lorg/gradle/api/NamedDomainObjectProvider;Lkotlin/jvm/functions/Function1;)V
 	public fun iosArm64 ()Lorg/jetbrains/kotlin/gradle/plugin/mpp/KotlinNativeTarget;
 	public fun iosArm64 (Ljava/lang/String;)Lorg/jetbrains/kotlin/gradle/plugin/mpp/KotlinNativeTarget;
@@ -1028,6 +1032,7 @@ public final class org/jetbrains/kotlin/gradle/plugin/mpp/Framework : org/jetbra
 	public fun getAttributes ()Lorg/jetbrains/kotlin/gradle/plugin/mpp/HierarchyAttributeContainer;
 	public final fun getEmbedBitcode ()Lorg/jetbrains/kotlin/gradle/plugin/mpp/BitcodeEmbeddingMode;
 	public final fun getEmbedBitcodeMode ()Lorg/gradle/api/provider/Property;
+	public final fun getExportKdoc ()Lorg/gradle/api/provider/Property;
 	public fun getOutputKind ()Lorg/jetbrains/kotlin/gradle/plugin/mpp/NativeOutputKind;
 	public final fun isStatic ()Z
 	public final fun setEmbedBitcode (Lorg/jetbrains/kotlin/gradle/plugin/mpp/BitcodeEmbeddingMode;)V

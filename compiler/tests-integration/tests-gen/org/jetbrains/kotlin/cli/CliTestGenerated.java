@@ -1081,6 +1081,11 @@ public class CliTestGenerated extends AbstractCliTest {
       runTest("compiler/testData/cli/jvm/XjspecifyAnnotation/jspecifyDefault.args");
     }
 
+    @TestMetadata("jspecifyFileRoots.args")
+    public void testJspecifyFileRoots() {
+      runTest("compiler/testData/cli/jvm/XjspecifyAnnotation/jspecifyFileRoots.args");
+    }
+
     @TestMetadata("jspecifyIgnore.args")
     public void testJspecifyIgnore() {
       runTest("compiler/testData/cli/jvm/XjspecifyAnnotation/jspecifyIgnore.args");
@@ -2109,6 +2114,11 @@ public class CliTestGenerated extends AbstractCliTest {
       runTest("compiler/testData/cli/js/reportPerf.args");
     }
 
+    @TestMetadata("reportPerfLowerings.args")
+    public void testReportPerfLowerings() {
+      runTest("compiler/testData/cli/js/reportPerfLowerings.args");
+    }
+
     @TestMetadata("reportPerfPsi.args")
     public void testReportPerfPsi() {
       runTest("compiler/testData/cli/js/reportPerfPsi.args");
@@ -2202,6 +2212,24 @@ public class CliTestGenerated extends AbstractCliTest {
     @TestMetadata("withLib.args")
     public void testWithLib() {
       runTest("compiler/testData/cli/js/withLib.args");
+    }
+  }
+
+  @TestMetadata("compiler/testData/cli/wasm")
+  @TestDataPath("$PROJECT_ROOT")
+  @RunWith(JUnit3RunnerWithInners.class)
+  public static class Wasm extends AbstractCliTest {
+    private void runTest(String testDataFilePath) {
+      KotlinTestUtils.runTest(this::doJsTest, this, testDataFilePath);
+    }
+
+    public void testAllFilesPresentInWasm() {
+      KtTestUtil.assertAllTestsPresentByMetadataWithExcluded(this.getClass(), new File("compiler/testData/cli/wasm"), Pattern.compile("^(.+)\\.args$"), null, false);
+    }
+
+    @TestMetadata("reportPerfLowerings.args")
+    public void testReportPerfLowerings() {
+      runTest("compiler/testData/cli/wasm/reportPerfLowerings.args");
     }
   }
 

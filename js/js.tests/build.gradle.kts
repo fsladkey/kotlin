@@ -153,7 +153,7 @@ fun Test.setUpJsBoxTests(tags: String?) {
     setupNodeJs()
     dependsOn(npmInstall)
 
-    inputs.files(rootDir.resolve("js/js.tests/test/org/jetbrains/kotlin/js/engine/repl.js"))
+    inputs.files(rootDir.resolve("js/js.tests/testFixtures/org/jetbrains/kotlin/js/engine/repl.js"))
 
     dependsOn(":dist")
     dependsOn(generateTypeScriptTests)
@@ -165,6 +165,10 @@ fun Test.setUpJsBoxTests(tags: String?) {
     systemProperty("kotlin.js.stdlib.klib.path", "libraries/stdlib/build/libs/kotlin-stdlib-js-$version.klib")
     inputs.file(rootDir.resolve("libraries/stdlib/build/libs/kotlin-stdlib-js-$version.klib"))
 
+    dependsOn(":kotlin-stdlib:compileKotlinWasmJs")
+    systemProperty("kotlin.wasm.full.stdlib.path", "libraries/stdlib/build/classes/kotlin/wasmJs/main")
+    inputs.dir(rootDir.resolve("libraries/stdlib/build/classes/kotlin/wasmJs/main"))
+
     dependsOn(":kotlin-stdlib-js-ir-minimal-for-test:compileKotlinJs")
     systemProperty("kotlin.js.reduced.stdlib.path", "libraries/stdlib/js-ir-minimal-for-test/build/classes/kotlin/js/main")
     inputs.dir(rootDir.resolve("libraries/stdlib/js-ir-minimal-for-test/build/classes/kotlin/js/main"))
@@ -172,6 +176,9 @@ fun Test.setUpJsBoxTests(tags: String?) {
     dependsOn(":kotlin-test:jsJar")
     systemProperty("kotlin.js.kotlin.test.klib.path", "libraries/kotlin.test/build/libs/kotlin-test-js-$version.klib")
     inputs.file(rootDir.resolve("libraries/kotlin.test/build/libs/kotlin-test-js-$version.klib"))
+
+    systemProperty("kotlin.js.full.test.path", "libraries/kotlin.test/build/classes/kotlin/js/main")
+    inputs.dir(rootDir.resolve("libraries/kotlin.test/build/classes/kotlin/js/main"))
 
     useJUnitPlatform {
         tags?.let { includeTags(it) }

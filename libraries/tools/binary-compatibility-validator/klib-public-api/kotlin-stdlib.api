@@ -10024,6 +10024,28 @@ open annotation class kotlinx.cinterop.internal/CStruct : kotlin/Annotation { //
 }
 
 // Targets: [native]
+open annotation class kotlinx.cinterop.internal/CToKotlinBridge : kotlin/Annotation { // kotlinx.cinterop.internal/CToKotlinBridge|null[0]
+    constructor <init>(kotlin/String, kotlin/String) // kotlinx.cinterop.internal/CToKotlinBridge.<init>|<init>(kotlin.String;kotlin.String){}[0]
+
+    final val declaration // kotlinx.cinterop.internal/CToKotlinBridge.declaration|{}declaration[0]
+        final fun <get-declaration>(): kotlin/String // kotlinx.cinterop.internal/CToKotlinBridge.declaration.<get-declaration>|<get-declaration>(){}[0]
+    final val language // kotlinx.cinterop.internal/CToKotlinBridge.language|{}language[0]
+        final fun <get-language>(): kotlin/String // kotlinx.cinterop.internal/CToKotlinBridge.language.<get-language>|<get-language>(){}[0]
+}
+
+// Targets: [native]
+open annotation class kotlinx.cinterop.internal/KotlinToCBridge : kotlin/Annotation { // kotlinx.cinterop.internal/KotlinToCBridge|null[0]
+    constructor <init>(kotlin/String, kotlin/String, kotlin/String) // kotlinx.cinterop.internal/KotlinToCBridge.<init>|<init>(kotlin.String;kotlin.String;kotlin.String){}[0]
+
+    final val impl // kotlinx.cinterop.internal/KotlinToCBridge.impl|{}impl[0]
+        final fun <get-impl>(): kotlin/String // kotlinx.cinterop.internal/KotlinToCBridge.impl.<get-impl>|<get-impl>(){}[0]
+    final val language // kotlinx.cinterop.internal/KotlinToCBridge.language|{}language[0]
+        final fun <get-language>(): kotlin/String // kotlinx.cinterop.internal/KotlinToCBridge.language.<get-language>|<get-language>(){}[0]
+    final val library // kotlinx.cinterop.internal/KotlinToCBridge.library|{}library[0]
+        final fun <get-library>(): kotlin/String // kotlinx.cinterop.internal/KotlinToCBridge.library.<get-library>|<get-library>(){}[0]
+}
+
+// Targets: [native]
 open annotation class kotlinx.cinterop/BetaInteropApi : kotlin/Annotation { // kotlinx.cinterop/BetaInteropApi|null[0]
     constructor <init>() // kotlinx.cinterop/BetaInteropApi.<init>|<init>(){}[0]
 }
@@ -12564,6 +12586,9 @@ final fun <#A: kotlin/Any?> kotlin.test/assertSame(#A, #A, kotlin/String? = ...)
 final fun <#A: kotlin/Any?> kotlin/emptyArray(): kotlin/Array<#A> // kotlin/emptyArray|emptyArray(){0§<kotlin.Any?>}[0]
 
 // Targets: [native]
+final fun <#A: kotlin/Any?> kotlinx.cinterop.internal/interopCallMarker(#A): #A // kotlinx.cinterop.internal/interopCallMarker|interopCallMarker(0:0){0§<kotlin.Any?>}[0]
+
+// Targets: [native]
 final fun <#A: kotlin/Any?> kotlinx.cinterop/interpretObjCPointerOrNull(kotlin.native.internal/NativePtr): #A? // kotlinx.cinterop/interpretObjCPointerOrNull|interpretObjCPointerOrNull(kotlin.native.internal.NativePtr){0§<kotlin.Any?>}[0]
 
 // Targets: [native]
@@ -13826,6 +13851,10 @@ abstract interface <#A: kotlin/Any> kotlin.reflect/KClass : kotlin.reflect/KClas
     abstract fun equals(kotlin/Any?): kotlin/Boolean // kotlin.reflect/KClass.equals|equals(kotlin.Any?){}[0]
     abstract fun hashCode(): kotlin/Int // kotlin.reflect/KClass.hashCode|hashCode(){}[0]
     abstract fun isInstance(kotlin/Any?): kotlin/Boolean // kotlin.reflect/KClass.isInstance|isInstance(kotlin.Any?){}[0]
+
+    // Targets: [js]
+    abstract val isInterface // kotlin.reflect/KClass.isInterface|{}isInterface[0]
+        abstract fun <get-isInterface>(): kotlin/Boolean // kotlin.reflect/KClass.isInterface.<get-isInterface>|<get-isInterface>(){}[0]
 }
 
 // Targets: [js, wasmJs, wasmWasi]
@@ -13943,6 +13972,11 @@ final val kotlin.js/definedExternally // kotlin.js/definedExternally|{}definedEx
 // Targets: [wasmJs, wasmWasi]
 open annotation class kotlin.wasm.unsafe/UnsafeWasmMemoryApi : kotlin/Annotation { // kotlin.wasm.unsafe/UnsafeWasmMemoryApi|null[0]
     constructor <init>() // kotlin.wasm.unsafe/UnsafeWasmMemoryApi.<init>|<init>(){}[0]
+}
+
+// Targets: [wasmJs, wasmWasi]
+open annotation class kotlin.wasm/ExperimentalWasmInterop : kotlin/Annotation { // kotlin.wasm/ExperimentalWasmInterop|null[0]
+    constructor <init>() // kotlin.wasm/ExperimentalWasmInterop.<init>|<init>(){}[0]
 }
 
 // Targets: [wasmJs, wasmWasi]
@@ -14139,10 +14173,10 @@ final inline fun kotlin/ulongCompare(kotlin/Long, kotlin/Long): kotlin/Int // ko
 final suspend fun <#A: kotlin/Any?> kotlin.wasm.internal/returnIfSuspended(kotlin/Any?): #A // kotlin.wasm.internal/returnIfSuspended|returnIfSuspended(kotlin.Any?){0§<kotlin.Any?>}[0]
 
 // Targets: [wasmJs, wasmWasi]
-final suspend fun <#A: kotlin/Any?> kotlin.wasm.internal/suspendCoroutineUninterceptedOrReturn(kotlin/Function1<kotlin.coroutines/Continuation<#A>, kotlin/Any?>): #A // kotlin.wasm.internal/suspendCoroutineUninterceptedOrReturn|suspendCoroutineUninterceptedOrReturn(kotlin.Function1<kotlin.coroutines.Continuation<0:0>,kotlin.Any?>){0§<kotlin.Any?>}[0]
+final suspend inline fun <#A: kotlin/Any?> kotlin.wasm.internal/suspendCoroutineUninterceptedOrReturn(kotlin/Function1<kotlin.coroutines/Continuation<#A>, kotlin/Any?>): #A // kotlin.wasm.internal/suspendCoroutineUninterceptedOrReturn|suspendCoroutineUninterceptedOrReturn(kotlin.Function1<kotlin.coroutines.Continuation<0:0>,kotlin.Any?>){0§<kotlin.Any?>}[0]
 
 // Targets: [wasmJs, wasmWasi]
-final suspend fun kotlin.wasm.internal/getCoroutineContext(): kotlin.coroutines/CoroutineContext // kotlin.wasm.internal/getCoroutineContext|getCoroutineContext(){}[0]
+final suspend inline fun kotlin.wasm.internal/getCoroutineContext(): kotlin.coroutines/CoroutineContext // kotlin.wasm.internal/getCoroutineContext|getCoroutineContext(){}[0]
 
 // Targets: [js]
 open annotation class kotlin.js/EagerInitialization : kotlin/Annotation { // kotlin.js/EagerInitialization|null[0]
@@ -15332,6 +15366,11 @@ final suspend inline fun <#A: kotlin/Any?> kotlin.js/suspendCoroutineUnintercept
 
 // Targets: [js]
 final suspend inline fun kotlin.js/getCoroutineContext(): kotlin.coroutines/CoroutineContext // kotlin.js/getCoroutineContext|getCoroutineContext(){}[0]
+
+// Targets: [wasmJs]
+open annotation class kotlin.js/ExperimentalWasmJsInterop : kotlin/Annotation { // kotlin.js/ExperimentalWasmJsInterop|null[0]
+    constructor <init>() // kotlin.js/ExperimentalWasmJsInterop.<init>|<init>(){}[0]
+}
 
 // Targets: [wasmJs]
 open annotation class kotlin/JsFun : kotlin/Annotation { // kotlin/JsFun|null[0]

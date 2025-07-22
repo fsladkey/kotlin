@@ -29,6 +29,7 @@ data class UnitStats(
     In the last case, it should have a suffix like `(Child)`.
      */
     val name: String?,
+    val outputKind: String?,
     // Use plain millis to get rid of using a custom JSON serializer for `java.util.Date`
     val timeStampMs: Long = System.currentTimeMillis(),
     val platform: PlatformType = PlatformType.JVM,
@@ -48,6 +49,8 @@ data class UnitStats(
     val klibWritingStats: Time?,
     val irLoweringStats: Time?,
     val backendStats: Time?,
+
+    val dynamicStats: List<DynamicStats>? = null,
 
     // Null in case of java files not used
     val findJavaClassStats: SideStats? = null,
@@ -193,6 +196,8 @@ data class GarbageCollectionStats(val kind: String, val millis: Long, val count:
     }
 }
 
+data class DynamicStats(val parentPhaseType: PhaseType, val name: String, val time: Time)
+
 fun UnitStats.forEachPhaseMeasurement(action: (PhaseType, Time?) -> Unit) {
     action(PhaseType.Initialization, initStats)
     action(PhaseType.Analysis, analysisStats)
@@ -237,6 +242,17 @@ fun UnitStats.forEachStringMeasurement(action: (String) -> Unit) {
                         ""
                     }
         )
+
+        dynamicStats?.filter { it.parentPhaseType == phaseType }?.forEach { (_, dynamicName, dynamicTime) ->
+            action(
+                "%20s%8s ms".format("DYNAMIC PHASE", dynamicTime.millis) +
+                        if (linesCount != 0) {
+                            "%12.3f loc/s ($dynamicName)".format(Locale.ENGLISH, getLinesPerSecond(dynamicTime))
+                        } else {
+                            " ($dynamicName)"
+                        }
+            )
+        }
     }
 
     forEachPhaseSideMeasurement { phaseSideType, sideStats ->

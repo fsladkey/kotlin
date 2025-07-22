@@ -17,6 +17,7 @@ import org.jetbrains.kotlin.fir.analysis.diagnostics.FirErrors
 import org.jetbrains.kotlin.fir.declarations.FirDeclaration
 import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.hasAnnotation
+import org.jetbrains.kotlin.fir.declarations.mustUseReturnValueStatusComponent
 import org.jetbrains.kotlin.fir.declarations.toAnnotationClassId
 import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.originalOrSelf
@@ -35,9 +36,16 @@ import org.jetbrains.kotlin.fir.types.resolvedType
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
 import org.jetbrains.kotlin.name.FqName
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.name.StandardClassIds
 
 object FirReturnValueAnnotationsChecker : FirBasicDeclarationChecker(MppCheckerKind.Common) {
+    private fun FirAnnotation.isMustUseReturnValue(session: FirSession): Boolean =
+        toAnnotationClassId(session) == StandardClassIds.Annotations.MustUseReturnValue
+
+    private fun FirAnnotation.isIgnorableValue(session: FirSession): Boolean =
+        toAnnotationClassId(session) == StandardClassIds.Annotations.IgnorableReturnValue
+
     context(context: CheckerContext, reporter: DiagnosticReporter)
     override fun check(declaration: FirDeclaration) {
         if (context.languageVersionSettings.getFlag(AnalysisFlags.returnValueCheckerMode) != ReturnValueCheckerMode.DISABLED) return
@@ -83,9 +91,12 @@ object FirUnusedReturnValueChecker : FirUnusedCheckerBase() {
         // Special case for `x[y] = z` assigment:
         if ((expression is FirFunctionCall) && expression.origin == FirFunctionCallOrigin.Operator && resolvedSymbol?.name?.asString() == "set") return false
 
+        val functionName = resolvedSymbol?.name
+
         reporter.reportOn(
             expression.source,
-            FirErrors.RETURN_VALUE_NOT_USED
+            FirErrors.RETURN_VALUE_NOT_USED,
+            functionName
         )
         return true
     }
@@ -128,31 +139,13 @@ private fun ConeKotlinType.isIgnorable(): Boolean {
     return false
 }
 
-private fun FirAnnotation.isMustUseReturnValue(session: FirSession): Boolean =
-    toAnnotationClassId(session) == StandardClassIds.Annotations.MustUseReturnValue
-
-private fun FirAnnotation.isIgnorableValue(session: FirSession): Boolean =
-    toAnnotationClassId(session) == StandardClassIds.Annotations.IgnorableReturnValue
-
-
-private fun FirExpression.isLocalPropertyOrParameterOrThis(): Boolean {
-    if (this is FirThisReceiverExpression) return true
-    if (this !is FirPropertyAccessExpression) return false
-    return when (calleeReference.symbol) {
-        is FirValueParameterSymbol -> true
-        is FirPropertySymbol -> calleeReference.toResolvedPropertySymbol()?.isLocal == true
-        else -> false
-    }
-}
-
-private fun FirCallableSymbol<*>.isExcluded(session: FirSession): Boolean =
-    hasAnnotation(StandardClassIds.Annotations.IgnorableReturnValue, session)
+private fun FirCallableSymbol<*>.isExcluded(session: FirSession): Boolean = session.mustUseReturnValueStatusComponent.hasIgnorableLikeAnnotation(resolvedAnnotationClassIds)
 
 private fun FirCallableSymbol<*>.isSubjectToCheck(): Boolean {
-    // TODO KT-71195 : treating everything in kotlin. seems to be the easiest way to handle builtins, FunctionN, etc..
-    // This should be removed after bootstrapping and recompiling stdlib in FULL mode
-    if (this.callableId.packageName.asString() == "kotlin") return this.origin !is FirDeclarationOrigin.Enhancement
-    callableId.ifMappedTypeCollection { return it }
+    // TODO KT-71195 : FunctionN seems to be a synthetic class, even recompiling stdlib in FULL mode
+    //  does not make it checked. Need to investigate another approach.
+    if (this.callableId?.packageName?.asString() == "kotlin") return this.origin !is FirDeclarationOrigin.Enhancement
+    callableId?.ifTypealiasedJvmCollection { return it }
 
 
     // TBD: Do we want to report them unconditionally? Or only in FULL mode?
@@ -162,27 +155,16 @@ private fun FirCallableSymbol<*>.isSubjectToCheck(): Boolean {
     return resolvedStatus.hasMustUseReturnValue
 }
 
-// TODO: after kotlin.collections package will be bootstrapped and @MustUseReturnValue-annotated,
-// this list should contain only typealiased Java types (HashSet, StringBuilder, etc.)
-private inline fun CallableId.ifMappedTypeCollection(nonIgnorableCollectionMethod: (Boolean) -> Unit) {
+private inline fun CallableId.ifTypealiasedJvmCollection(nonIgnorableCollectionMethod: (Boolean) -> Unit) {
     val packageName = packageName.asString()
     if (packageName != "kotlin.collections" && packageName != "java.util") return
     val className = className?.asString() ?: return
-    if (className !in setOf(
-            "Collection",
-            "MutableCollection",
-            "List",
-            "MutableList",
+    if (className !in setOf( // libraries/stdlib/jvm/src/kotlin/collections/TypeAliases.kt
             "ArrayList",
-            "Set",
-            "MutableSet",
             "HashSet",
             "LinkedHashSet",
-            "Map",
-            "MutableMap",
             "HashMap",
             "LinkedHashMap",
-            "ArrayDeque"
         )
     ) return
     nonIgnorableCollectionMethod(
@@ -192,8 +174,13 @@ private inline fun CallableId.ifMappedTypeCollection(nonIgnorableCollectionMetho
             "remove",
             "removeAt",
             "removeAll",
+            "removeIf",
             "set",
             "put",
+            "putIfAbsent",
+            "merge",
+            "compute",
+            "computeIfAbsent",
             "retainAll",
             "removeLast"
         )

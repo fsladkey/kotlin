@@ -103,16 +103,16 @@ class WasmFileCodegenContext(
         get() = wasmFileFragment.stringPoolSize
             ?: WasmSymbol<Int>().also { wasmFileFragment.stringPoolSize = it }
 
-    val throwableTagIndex: WasmSymbol<Int>
-        get() = wasmFileFragment.throwableTagIndex
-            ?: WasmSymbol<Int>().also { wasmFileFragment.throwableTagIndex = it }
+    fun addObjectInstanceFieldInitializer(initializer: IrFunctionSymbol) {
+        wasmFileFragment.objectInstanceFieldInitializers.add(initializer.getReferenceKey())
+    }
 
-    val jsExceptionTagIndex: WasmSymbol<Int>
-        get() = wasmFileFragment.jsExceptionTagIndex
-            ?: WasmSymbol<Int>().also { wasmFileFragment.jsExceptionTagIndex = it }
+    fun setStringPoolFieldInitializer(initializer: IrFunctionSymbol) {
+        wasmFileFragment.stringPoolFieldInitializer = initializer.getReferenceKey()
+    }
 
-    fun addFieldInitializer(irField: IrFieldSymbol, instructions: List<WasmInstr>, isObjectInstanceField: Boolean) {
-        wasmFileFragment.fieldInitializers.add(FieldInitializer(irField.getReferenceKey(), instructions, isObjectInstanceField))
+    fun addNonConstantFieldInitializers(initializer: IrFunctionSymbol) {
+        wasmFileFragment.nonConstantFieldInitializers.add(initializer.getReferenceKey())
     }
 
     fun addMainFunctionWrapper(mainFunctionWrapper: IrFunctionSymbol) {

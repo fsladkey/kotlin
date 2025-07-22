@@ -199,11 +199,7 @@ class SubpluginsIT : KGPBaseTest() {
         project(
             "kapt2/android-dagger",
             gradleVersion,
-            buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion).suppressDeprecationWarningsSinceGradleVersion(
-                gradleVersion = TestVersions.Gradle.G_8_13,
-                currentGradleVersion = gradleVersion,
-                reason = "KT-71879: old Kotlin release produces deprecation warning"
-            ),
+            buildOptions = defaultBuildOptions.copy(androidVersion = agpVersion),
             buildJdk = providedJdk.location
         ) {
             subProject("app").buildGradle.modify {
@@ -259,8 +255,9 @@ class SubpluginsIT : KGPBaseTest() {
                 afterEvaluate {
                     tasks.withType<org.jetbrains.kotlin.gradle.tasks.KotlinCompile> {
                         // aligned with embedded Kotlin compiler: https://docs.gradle.org/current/userguide/compatibility.html#kotlin
-                        compilerOptions.apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.$firstNonDeprecated)
-                        compilerOptions.languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.$firstNonDeprecated)
+                        // the hardcoded values are fine as this block (and the test) are checking some old Gradle functionality
+                        compilerOptions.apiVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
+                        compilerOptions.languageVersion.set(org.jetbrains.kotlin.gradle.dsl.KotlinVersion.KOTLIN_2_0)
                     }
                 }
                 """.trimIndent()

@@ -595,6 +595,18 @@ public class FirKaptStubConverterTestGenerated extends AbstractFirKaptStubConver
   }
 
   @Test
+  @TestMetadata("kt79133_typeAliasClassLiteral.kt")
+  public void testKt79133_typeAliasClassLiteral() {
+    runTest("plugins/kapt/kapt-compiler/testData/converter/kt79133_typeAliasClassLiteral.kt");
+  }
+
+  @Test
+  @TestMetadata("kt79138_javaClassAnnotatedWithMetadata.kt")
+  public void testKt79138_javaClassAnnotatedWithMetadata() {
+    runTest("plugins/kapt/kapt-compiler/testData/converter/kt79138_javaClassAnnotatedWithMetadata.kt");
+  }
+
+  @Test
   @TestMetadata("lazyProperty.kt")
   public void testLazyProperty() {
     runTest("plugins/kapt/kapt-compiler/testData/converter/lazyProperty.kt");

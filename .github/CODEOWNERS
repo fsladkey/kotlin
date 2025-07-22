@@ -29,11 +29,15 @@
 /compiler/arguments.common/ @JetBrains/kotlin-frontend @JetBrains/kotlin-build-tools
 /compiler/arguments/ @JetBrains/kotlin-frontend @JetBrains/kotlin-build-tools
 /compiler/arguments/src/org/jetbrains/kotlin/arguments/description/WasmCompilerArguments.kt @JetBrains/kotlin-wasm
+/compiler/arguments/resources/kotlin-compiler-arguments.json @JetBrains/kotlin-frontend @JetBrains/kotlin-build-tools @JetBrains/kotlin-wasm
 /compiler/android-tests/ @JetBrains/kotlin-jvm
 /compiler/backend/ @JetBrains/kotlin-jvm
 /compiler/backend.common.jvm/ @JetBrains/kotlin-jvm
 /compiler/backend-common/ @JetBrains/kotlin-jvm @JetBrains/kotlin-native @JetBrains/kotlin-wasm @JetBrains/kotlin-common-backend @JetBrains/kotlin-js
 /compiler/build-tools/ @JetBrains/kotlin-build-tools
+/compiler/build-tools/kotlin-build-tools-api/gen/ @JetBrains/kotlin
+/compiler/build-tools/kotlin-build-tools-impl/gen/ @JetBrains/kotlin
+/compiler/build-tools/kotlin-build-tools-api/api/kotlin-build-tools-api.api @JetBrains/kotlin
 /compiler/cli/ @JetBrains/kotlin-frontend
 /compiler/cli/cli-js/ @JetBrains/kotlin-js @JetBrains/kotlin-wasm
 /compiler/cli/cli-common/gen/org/jetbrains/kotlin/cli/common/arguments/K2NativeCompilerArguments.kt @JetBrains/kotlin-native
@@ -105,6 +109,7 @@
 /compiler/testData/classpathOrder/ @JetBrains/kotlin-jvm
 /compiler/testData/cli/ @JetBrains/kotlin-frontend
 /compiler/testData/cli/js/ @JetBrains/kotlin-js @JetBrains/kotlin-frontend
+/compiler/testData/cli/js/js*Help.out @JetBrains/kotlin-js @JetBrains/kotlin-frontend  @JetBrains/kotlin-wasm
 /compiler/testData/cli/jvm/ @JetBrains/kotlin-jvm @JetBrains/kotlin-frontend
 /compiler/testData/cli/metadata/ @JetBrains/kotlin-frontend
 /compiler/testData/codegen/asmLike/ @JetBrains/kotlin-jvm
@@ -179,14 +184,14 @@
 /compiler/tests/ @JetBrains/kotlin-frontend @JetBrains/kotlin-jvm @JetBrains/kotlin-native @JetBrains/kotlin-wasm @JetBrains/kotlin-common-backend @JetBrains/kotlin-js
 /compiler/tests-against-klib/ @JetBrains/kotlin-jvm
 /compiler/tests-common/ @JetBrains/kotlin-frontend @JetBrains/kotlin-jvm @JetBrains/kotlin-native @JetBrains/kotlin-wasm @JetBrains/kotlin-common-backend @JetBrains/kotlin-js
-/compiler/tests-common/tests/org/jetbrains/kotlin/asJava/ @JetBrains/kotlin-analysis-api
+/compiler/tests-common/testFixtures/org/jetbrains/kotlin/asJava/ @JetBrains/kotlin-analysis-api
 /compiler/tests-common-new/ @JetBrains/kotlin-frontend
 /compiler/tests-common-new/tests-gen/org/jetbrains/kotlin/test/runners/codegen/ @JetBrains/kotlin-frontend @JetBrains/kotlin-jvm @JetBrains/kotlin-js @JetBrains/kotlin-native @JetBrains/kotlin-wasm
 /compiler/tests-common-new/tests-gen/org/jetbrains/kotlin/test/runners/ir/ @JetBrains/kotlin-frontend @JetBrains/kotlin-jvm @JetBrains/kotlin-js @JetBrains/kotlin-native @JetBrains/kotlin-wasm
-/compiler/tests-common-new/tests/org/jetbrains/kotlin/test/directives/WasmEnvironmentConfigurationDirectives.kt @JetBrains/kotlin-wasm
-/compiler/tests-common-new/tests/org/jetbrains/kotlin/test/services/configuration/WasmEnvironmentConfigurator.kt @JetBrains/kotlin-wasm
-/compiler/tests-common-new/tests/org/jetbrains/kotlin/test/directives/JsEnvironmentConfigurationDirectives.kt @JetBrains/kotlin-js
-/compiler/tests-common-new/tests/org/jetbrains/kotlin/test/services/configuration/JsEnvironmentConfigurator.kt @JetBrains/kotlin-js
+/compiler/tests-common-new/testFixtures/org/jetbrains/kotlin/test/directives/WasmEnvironmentConfigurationDirectives.kt @JetBrains/kotlin-wasm
+/compiler/tests-common-new/testFixtures/org/jetbrains/kotlin/test/services/configuration/WasmEnvironmentConfigurator.kt @JetBrains/kotlin-wasm
+/compiler/tests-common-new/testFixtures/org/jetbrains/kotlin/test/directives/JsEnvironmentConfigurationDirectives.kt @JetBrains/kotlin-js
+/compiler/tests-common-new/testFixtures/org/jetbrains/kotlin/test/services/configuration/JsEnvironmentConfigurator.kt @JetBrains/kotlin-js
 /compiler/tests-compiler-utils/ @JetBrains/kotlin-frontend @JetBrains/kotlin-common-backend @JetBrains/kotlin-jvm @JetBrains/kotlin-native @JetBrains/kotlin-wasm @JetBrains/kotlin-js
 /compiler/tests-integration/ @JetBrains/kotlin-frontend @JetBrains/kotlin-common-backend @JetBrains/kotlin-jvm @JetBrains/kotlin-native @JetBrains/kotlin-wasm @JetBrains/kotlin-js
 /compiler/tests-integration/tests/org/jetbrains/kotlin/klib/ @JetBrains/kotlin-common-backend
@@ -225,6 +230,7 @@
 
 /docs/analysis/ @JetBrains/kotlin-analysis-api
 /docs/code_authoring_and_core_review.md vsevolod.tolstopyatov@jetbrains.com simon.ogorodnik@jetbrains.com
+/docs/changelogs/ @JetBrains/kotlin-release
 
 /generators/ReadMe.md @JetBrains/kotlin-build-infrastructure
 /generators/analysis-api-generator/ @JetBrains/kotlin-analysis-api
@@ -288,6 +294,7 @@
 /libraries/tools/kotlin-build-tools-enum-compat/ @JetBrains/kotlin-build-tools
 /libraries/tools/gradle/ @JetBrains/kotlin-build-tools
 /libraries/tools/jdk-api-validator/ @JetBrains/kotlin-libraries
+/libraries/tools/klib-abi-reader/ @JetBrains/kotlin-common-backend
 /libraries/tools/kotlin-allopen/ @JetBrains/kotlin-build-tools
 /libraries/tools/kotlin-annotations-jvm/ @JetBrains/kotlin-libraries
 /libraries/tools/kotlin-assignment/ @JetBrains/kotlin-build-tools
@@ -307,6 +314,7 @@
 /libraries/tools/kotlin-gradle-plugin-idea-for-compatibility-tests/ @JetBrains/kotlin-build-tools
 /libraries/tools/kotlin-gradle-plugin-idea-proto/ @JetBrains/kotlin-build-tools
 /libraries/tools/kotlin-gradle-plugin-integration-tests/ @JetBrains/kotlin-build-tools
+/libraries/tools/kotlin-gradle-plugin-integration-tests/src/test/kotlin/org/jetbrains/kotlin/gradle/KotlinWasmGradlePluginIT.kt @JetBrains/kotlin-build-tools @JetBrains/kotlin-wasm
 /libraries/tools/kotlin-gradle-plugin-integration-tests/src/test/resources/testProject/new-mpp-wasm-*/ @JetBrains/kotlin-build-tools @JetBrains/kotlin-wasm
 /libraries/tools/kotlin-gradle-plugin-integration-tests/src/test/resources/testProject/wasm-*/ @JetBrains/kotlin-build-tools @JetBrains/kotlin-wasm
 /libraries/tools/kotlin-gradle-plugin-integration-tests/src/test/resources/testProject/js-*/ @JetBrains/kotlin-build-tools @JetBrains/kotlin-js

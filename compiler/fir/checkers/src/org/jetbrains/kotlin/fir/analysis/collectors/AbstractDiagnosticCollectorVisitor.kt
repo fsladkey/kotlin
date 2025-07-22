@@ -9,8 +9,10 @@ import org.jetbrains.kotlin.fir.FirAnnotationContainer
 import org.jetbrains.kotlin.fir.FirElement
 import org.jetbrains.kotlin.fir.analysis.checkers.context.CheckerContextForProvider
 import org.jetbrains.kotlin.fir.analysis.checkers.declaration.createInlineFunctionBodyContext
+import org.jetbrains.kotlin.fir.analysis.checkers.expression.createInlinableParameterContext
 import org.jetbrains.kotlin.fir.analysis.checkers.extra.createLambdaBodyContext
 import org.jetbrains.kotlin.fir.contracts.FirContractDescription
+import org.jetbrains.kotlin.fir.contracts.FirLazyContractDescription
 import org.jetbrains.kotlin.fir.declarations.*
 import org.jetbrains.kotlin.fir.declarations.utils.correspondingValueParameterFromPrimaryConstructor
 import org.jetbrains.kotlin.fir.declarations.utils.isInline
@@ -18,15 +20,18 @@ import org.jetbrains.kotlin.fir.expressions.*
 import org.jetbrains.kotlin.fir.expressions.impl.FirContractCallBlock
 import org.jetbrains.kotlin.fir.symbols.SymbolInternals
 import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.symbols.lazyResolveToPhase
 import org.jetbrains.kotlin.fir.types.ConeErrorType
 import org.jetbrains.kotlin.fir.types.FirErrorTypeRef
 import org.jetbrains.kotlin.fir.types.FirResolvedTypeRef
 import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.impl.FirImplicitBuiltinTypeRef
+import org.jetbrains.kotlin.fir.utils.exceptions.withFirEntry
 import org.jetbrains.kotlin.fir.visitors.FirDefaultVisitor
 import org.jetbrains.kotlin.fir.whileAnalysing
 import org.jetbrains.kotlin.util.PrivateForInline
+import org.jetbrains.kotlin.utils.exceptions.errorWithAttachment
 
 abstract class AbstractDiagnosticCollectorVisitor(
     @set:PrivateForInline var context: CheckerContextForProvider,
@@ -119,7 +124,16 @@ abstract class AbstractDiagnosticCollectorVisitor(
     }
 
     override fun visitAnonymousFunctionExpression(anonymousFunctionExpression: FirAnonymousFunctionExpression, data: Nothing?) {
-        visitAnonymousFunction(anonymousFunctionExpression.anonymousFunction, data)
+        if (context.containingDeclarations.lastOrNull().let {
+                it is FirValueParameterSymbol && it.isNoinline && it.resolvedDefaultValue == anonymousFunctionExpression
+            }
+        ) {
+            suppressInlineFunctionBodyContext {
+                visitAnonymousFunction(anonymousFunctionExpression.anonymousFunction, data)
+            }
+        } else {
+            visitAnonymousFunction(anonymousFunctionExpression.anonymousFunction, data)
+        }
     }
 
     override fun visitAnonymousFunction(anonymousFunction: FirAnonymousFunction, data: Nothing?) {
@@ -199,6 +213,28 @@ abstract class AbstractDiagnosticCollectorVisitor(
         }
     }
 
+    override fun visitLazyBlock(lazyBlock: FirLazyBlock, data: Nothing?) {
+        suppressOrThrowError(lazyBlock)
+        super.visitLazyBlock(lazyBlock, data)
+    }
+
+    override fun visitLazyExpression(lazyExpression: FirLazyExpression, data: Nothing?) {
+        suppressOrThrowError(lazyExpression)
+        super.visitLazyExpression(lazyExpression, data)
+    }
+
+    override fun visitLazyContractDescription(lazyContractDescription: FirLazyContractDescription, data: Nothing?) {
+        suppressOrThrowError(lazyContractDescription)
+        super.visitLazyContractDescription(lazyContractDescription, data)
+    }
+
+    private fun suppressOrThrowError(element: FirElement) {
+        if (System.getProperty("kotlin.suppress.lazy.expression.access").toBoolean()) return
+        errorWithAttachment("${element::class.simpleName} should be calculated before accessing") {
+            withFirEntry("firElement", element)
+        }
+    }
+
     override fun visitContractDescription(contractDescription: FirContractDescription, data: Nothing?) {
         suppressInlineFunctionBodyContext {
             visitElement(contractDescription, data)
@@ -255,7 +291,9 @@ abstract class AbstractDiagnosticCollectorVisitor(
     }
 
     override fun visitAnnotationCall(annotationCall: FirAnnotationCall, data: Nothing?) {
-        visitWithCallOrAssignment(annotationCall)
+        suppressInlineFunctionBodyContext {
+            visitWithCallOrAssignment(annotationCall)
+        }
     }
 
     override fun visitVariableAssignment(variableAssignment: FirVariableAssignment, data: Nothing?) {
@@ -300,20 +338,25 @@ abstract class AbstractDiagnosticCollectorVisitor(
 
     @OptIn(PrivateForInline::class)
     private inline fun <T> withInlineFunctionBodyIfApplicable(function: FirFunction, isInline: Boolean, block: () -> T): T {
+        val oldBodyContext = context.inlineFunctionBodyContext
+        val oldInlinableParameterContext = context.inlinableParameterContext
         return try {
             if (isInline) {
-                context = context.setInlineFunctionBodyContext(createInlineFunctionBodyContext(function, context.session))
+                val bodyContext = createInlineFunctionBodyContext(function, context.session)
+                val parameterContext = createInlinableParameterContext(function, context.session)
+                context = context.setInlineFunctionBodyContext(bodyContext).setInlinableParameterContext(parameterContext)
             }
             block()
         } finally {
             if (isInline) {
-                context = context.unsetInlineFunctionBodyContext()
+                context = context.setInlinableParameterContext(oldInlinableParameterContext).setInlineFunctionBodyContext(oldBodyContext)
             }
         }
     }
 
     @OptIn(PrivateForInline::class)
     private inline fun <T> withLambdaBodyIfApplicable(function: FirAnonymousFunction, block: () -> T): T {
+        val oldContext = context.lambdaBodyContext
         return try {
             if (function.isLambda) {
                 context = context.setLambdaBodyContext(createLambdaBodyContext(function, context))
@@ -321,7 +364,7 @@ abstract class AbstractDiagnosticCollectorVisitor(
             block()
         } finally {
             if (function.isLambda) {
-                context = context.unsetLambdaBodyContext()
+                context = context.setLambdaBodyContext(oldContext)
             }
         }
     }
@@ -445,7 +488,7 @@ abstract class AbstractDiagnosticCollectorVisitor(
     @OptIn(PrivateForInline::class)
     private inline fun <R> suppressInlineFunctionBodyContext(block: () -> R): R {
         val oldInlineFunctionBodyContext = context.inlineFunctionBodyContext?.also {
-            context = context.unsetInlineFunctionBodyContext()
+            context = context.setInlineFunctionBodyContext(null)
         }
         return try {
             block()

@@ -1233,6 +1233,12 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     }
 
     @Test
+    @TestMetadata("kt12211_accessorForDelegatedPropertySetter.kt")
+    public void testKt12211_accessorForDelegatedPropertySetter() {
+      runTest("compiler/testData/codegen/bytecodeText/companion/kt12211_accessorForDelegatedPropertySetter.kt");
+    }
+
+    @Test
     @TestMetadata("kt14258_1.kt")
     public void testKt14258_1() {
       runTest("compiler/testData/codegen/bytecodeText/companion/kt14258_1.kt");
@@ -4990,6 +4996,12 @@ public class FirLightTreeBytecodeTextTestGenerated extends AbstractFirLightTreeB
     @TestMetadata("noNullCheckAfterCast.kt")
     public void testNoNullCheckAfterCast() {
       runTest("compiler/testData/codegen/bytecodeText/nullCheckOptimization/noNullCheckAfterCast.kt");
+    }
+
+    @Test
+    @TestMetadata("noNullCheckOnPrivateFunctionParameter.kt")
+    public void testNoNullCheckOnPrivateFunctionParameter() {
+      runTest("compiler/testData/codegen/bytecodeText/nullCheckOptimization/noNullCheckOnPrivateFunctionParameter.kt");
     }
 
     @Test

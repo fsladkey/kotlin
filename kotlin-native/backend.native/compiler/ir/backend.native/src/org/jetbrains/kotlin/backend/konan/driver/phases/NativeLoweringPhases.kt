@@ -6,6 +6,7 @@
 package org.jetbrains.kotlin.backend.konan.driver.phases
 
 import org.jetbrains.kotlin.backend.common.BodyLoweringPass
+import org.jetbrains.kotlin.backend.common.CompilationException
 import org.jetbrains.kotlin.backend.common.FileLoweringPass
 import org.jetbrains.kotlin.backend.common.ir.Symbols
 import org.jetbrains.kotlin.backend.common.ir.isReifiable
@@ -16,6 +17,7 @@ import org.jetbrains.kotlin.backend.common.lower.optimizations.PropertyAccessorI
 import org.jetbrains.kotlin.backend.common.lower.optimizations.LivenessAnalysis
 import org.jetbrains.kotlin.backend.common.phaser.*
 import org.jetbrains.kotlin.backend.common.runOnFilePostfix
+import org.jetbrains.kotlin.backend.common.wrapWithCompilationException
 import org.jetbrains.kotlin.ir.util.isReifiedTypeParameter
 import org.jetbrains.kotlin.backend.konan.*
 import org.jetbrains.kotlin.backend.konan.driver.utilities.getDefaultIrActions
@@ -34,6 +36,7 @@ import org.jetbrains.kotlin.ir.inline.*
 import org.jetbrains.kotlin.backend.konan.lower.NativeAssertionWrapperLowering
 import org.jetbrains.kotlin.backend.konan.optimizations.CastsOptimization
 import org.jetbrains.kotlin.ir.interpreter.IrInterpreterConfiguration
+import org.jetbrains.kotlin.utils.KotlinExceptionWithAttachments
 
 internal typealias LoweringList = List<NamedCompilerPhase<NativeGenerationState, IrFile, IrFile>>
 internal typealias ModuleLowering = NamedCompilerPhase<NativeGenerationState, IrModuleFragment, Unit>
@@ -76,11 +79,6 @@ internal val validateIrAfterInliningOnlyPrivateFunctions = createSimpleNamedComp
         }
 )
 
-internal val dumpSyntheticAccessorsPhase = createSimpleNamedCompilerPhase<NativeGenerationState, IrModuleFragment>(
-        name = "DumpSyntheticAccessorsPhase",
-        op = { context, module -> DumpSyntheticAccessors(context.context).lower(module) },
-)
-
 internal val validateIrAfterInliningAllFunctions = createSimpleNamedCompilerPhase<NativeGenerationState, IrModuleFragment>(
         name = "ValidateIrAfterInliningAllFunctions",
         op = { context, module ->
@@ -93,9 +91,8 @@ internal val validateIrAfterInliningAllFunctions = createSimpleNamedCompilerPhas
                             // TODO: remove this condition after the fix of KT-66734:
                             inlineFunction.isExternal -> true // temporarily permitted
 
-                            // it's fine to have typeOf<T> with reified T, it would be correctly handled by inliner on inlining to next use-sites.
-                            // maybe it should be replaced by separate node to avoid this special case and simplify detection code - KT-70360
-                            Symbols.isTypeOfIntrinsic(inlineFunction.symbol) && inlineFunctionUseSite.typeArguments[0]?.isReifiedTypeParameter == true -> true
+                            // it's fine to have typeOf<T>, it would be ignored by inliner and handled on the second stage of compilation
+                            Symbols.isTypeOfIntrinsic(inlineFunction.symbol) -> true
 
                             else -> false // forbidden
                         }
@@ -200,6 +197,11 @@ private val initializersPhase = createFileLoweringPhase(
         prerequisite = setOf(enumConstructorsPhase)
 )
 
+private val inventNamesForInteropBridgesPhase = createFileLoweringPhase(
+        lowering = ::InteropBridgesNameInventor,
+        name = "InventNameForInteropBridges",
+)
+
 private val localFunctionsPhase = createFileLoweringPhase(
         op = { context, irFile ->
             LocalDelegatedPropertiesLowering().lower(irFile)
@@ -207,7 +209,7 @@ private val localFunctionsPhase = createFileLoweringPhase(
             LocalClassPopupLowering(context).lower(irFile)
         },
         name = "LocalFunctions",
-        prerequisite = setOf(sharedVariablesPhase) // TODO: add "soft" dependency on inventNamesForLocalClasses
+        prerequisite = setOf(sharedVariablesPhase, inventNamesForInteropBridgesPhase) // TODO: add "soft" dependency on inventNamesForLocalClasses
 )
 
 private val tailrecPhase = createFileLoweringPhase(
@@ -357,6 +359,11 @@ internal val inlineAllFunctionsPhase = createFileLoweringPhase(
         name = "InlineAllFunctions",
 )
 
+private val typeOfProcessingLowering = createFileLoweringPhase(
+        lowering = ::TypeOfProcessingLowering,
+        name = "TypeOfProcessingLowering",
+)
+
 private val specializeSharedVariableBoxes = createFileLoweringPhase(
         lowering = { context: Context -> SharedVariablesPrimitiveBoxSpecializationLowering(context, context.symbols) },
         name = "SpecializeSharedVariableBoxes",
@@ -364,8 +371,11 @@ private val specializeSharedVariableBoxes = createFileLoweringPhase(
 )
 
 private val interopPhase = createFileLoweringPhase(
-        lowering = ::InteropLowering,
+        lowering = { generationState: NativeGenerationState ->
+            InteropLowering(generationState.context, generationState.fileLowerState)
+        },
         name = "Interop",
+        prerequisite = setOf(extractLocalClassesFromInlineBodies)
 )
 
 private val specialInteropIntrinsicsPhase = createFileLoweringPhase(
@@ -565,6 +575,7 @@ internal fun getLoweringsUpToAndIncludingSyntheticAccessors(): LoweringList = li
 )
 
 internal fun KonanConfig.getLoweringsAfterInlining(): LoweringList = listOfNotNull(
+        typeOfProcessingLowering,
         specializeSharedVariableBoxes,
         interopPhase,
         specialInteropIntrinsicsPhase,
@@ -576,6 +587,7 @@ internal fun KonanConfig.getLoweringsAfterInlining(): LoweringList = listOfNotNu
         delegatedPropertyOptimizationPhase,
         propertyReferencePhase,
         functionReferencePhase,
+        singleAbstractMethodPhase,
         postInlinePhase,
         contractsDslRemovePhase,
         annotationImplementationPhase,
@@ -586,6 +598,7 @@ internal fun KonanConfig.getLoweringsAfterInlining(): LoweringList = listOfNotNu
         stringConcatenationTypeNarrowingPhase.takeIf { this.optimizationsEnabled },
         enumConstructorsPhase,
         initializersPhase,
+        inventNamesForInteropBridgesPhase,
         inventNamesForLocalClasses,
         localFunctionsPhase,
         tailrecPhase,
@@ -594,7 +607,6 @@ internal fun KonanConfig.getLoweringsAfterInlining(): LoweringList = listOfNotNu
         dataClassesPhase,
         ifNullExpressionsFusionPhase,
         staticCallableReferenceOptimizationPhase,
-        singleAbstractMethodPhase,
         enumWhenPhase,
         finallyBlocksPhase,
         enumClassPhase,
@@ -623,38 +635,39 @@ private fun createFileLoweringPhase(
         name: String,
         lowering: (NativeGenerationState) -> FileLoweringPass,
         prerequisite: Set<NamedCompilerPhase<*, *, *>> = emptySet(),
-): NamedCompilerPhase<NativeGenerationState, IrFile, IrFile> = createSimpleNamedCompilerPhase(
+) = createFileLoweringPhaseImpl(
         name,
-        preactions = getDefaultIrActions(),
-        postactions = getDefaultIrActions(),
-        prerequisite = prerequisite,
-        outputIfNotEnabled = { _, _, _, irFile -> irFile },
-        op = { context, irFile ->
-            lowering(context).lower(irFile)
-            irFile
-        }
-)
+        prerequisite
+) { context, irFile ->
+    lowering(context).lower(irFile)
+}
 
 private fun createFileLoweringPhase(
         lowering: (Context) -> FileLoweringPass,
         name: String,
         prerequisite: Set<NamedCompilerPhase<*, *, *>> = emptySet(),
-): NamedCompilerPhase<NativeGenerationState, IrFile, IrFile> = createSimpleNamedCompilerPhase(
+) = createFileLoweringPhaseImpl(
         name,
-        preactions = getDefaultIrActions(),
-        postactions = getDefaultIrActions(),
-        prerequisite = prerequisite,
-        outputIfNotEnabled = { _, _, _, irFile -> irFile },
-        op = { context, irFile ->
-            lowering(context.context).lower(irFile)
-            irFile
-        }
-)
+        prerequisite
+) { context, irFile ->
+    lowering(context.context).lower(irFile)
+}
 
 private fun createFileLoweringPhase(
         op: (context: Context, irFile: IrFile) -> Unit,
         name: String,
         prerequisite: Set<NamedCompilerPhase<*, *, *>> = emptySet(),
+) = createFileLoweringPhaseImpl(
+        name,
+        prerequisite
+) { context, irFile ->
+    op(context.context, irFile)
+}
+
+private fun createFileLoweringPhaseImpl(
+        name: String,
+        prerequisite: Set<NamedCompilerPhase<*, *, *>>,
+        op: (NativeGenerationState, IrFile) -> Unit
 ): NamedCompilerPhase<NativeGenerationState, IrFile, IrFile> = createSimpleNamedCompilerPhase(
         name,
         preactions = getDefaultIrActions(),
@@ -662,7 +675,17 @@ private fun createFileLoweringPhase(
         prerequisite = prerequisite,
         outputIfNotEnabled = { _, _, _, irFile -> irFile },
         op = { context, irFile ->
-            op(context.context, irFile)
+            try {
+                op(context, irFile)
+            } catch (e: CompilationException) {
+                e.initializeFileDetails(irFile)
+                throw e
+            } catch (e: KotlinExceptionWithAttachments) {
+                throw e
+            } catch (e: Throwable) {
+                throw e.wrapWithCompilationException("Internal error in file lowering", irFile, null)
+            }
+
             irFile
         }
 )

@@ -26,6 +26,7 @@ import org.jetbrains.kotlin.fir.resolve.toSymbol
 import org.jetbrains.kotlin.fir.resolve.transformers.WhenOnSealedClassExhaustivenessChecker.ConditionChecker.processBranch
 import org.jetbrains.kotlin.fir.symbols.FirBasedSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirClassSymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirEnumEntrySymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirRegularClassSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirVariableSymbol
 import org.jetbrains.kotlin.fir.types.*
@@ -451,7 +452,7 @@ private object WhenOnSealedClassExhaustivenessChecker : WhenExhaustivenessChecke
                     it.fir.classKind.isSingleton,
                     it.ownTypeParameterSymbols.size
                 )
-                is FirVariableSymbol<*> -> WhenMissingCase.EnumCheckIsMissing(it.callableId)
+                is FirEnumEntrySymbol -> WhenMissingCase.EnumCheckIsMissing(it.callableId)
                 else -> null
             }
         }
@@ -571,9 +572,6 @@ private data object WhenSelfTypeExhaustivenessChecker : WhenExhaustivenessChecke
         session: FirSession,
         destination: MutableCollection<WhenMissingCase>,
     ) {
-        // This checker should only be used when no other missing cases are being reported.
-        if (destination.isNotEmpty()) return
-
         if (!isExhaustiveThroughSelfTypeCheck(whenExpression, subjectType, session)) {
             // If there are no cases that check for self-type or super-type, report an Unknown missing case,
             // since we do not want to suggest this sort of check.
@@ -608,17 +606,28 @@ private data object WhenSelfTypeExhaustivenessChecker : WhenExhaustivenessChecke
         val convertedSubjectType = subjectType.withNullability(nullable = false, typeContext = session.typeContext)
 
         val checkedTypes = mutableSetOf<ConeKotlinType>()
-        whenExpression.accept(ConditionChecker, checkedTypes)
+        whenExpression.accept(ConditionChecker(session), checkedTypes)
 
         // If there are no cases that check for self-type or super-type, report an Unknown missing case,
         // since we do not want to suggest this sort of check.
         return checkedTypes.any { convertedSubjectType.isSubtypeOf(it, session) }
     }
 
-    private object ConditionChecker : AbstractConditionChecker<MutableSet<ConeKotlinType>>() {
+    private class ConditionChecker(val session: FirSession) : AbstractConditionChecker<MutableSet<ConeKotlinType>>() {
         override fun visitTypeOperatorCall(typeOperatorCall: FirTypeOperatorCall, data: MutableSet<ConeKotlinType>) {
             if (typeOperatorCall.operation != FirOperation.IS) return
             data.add(typeOperatorCall.conversionTypeRef.coneType)
+        }
+
+        override fun visitEqualityOperatorCall(equalityOperatorCall: FirEqualityOperatorCall, data: MutableSet<ConeKotlinType>) {
+            if (!session.languageVersionSettings.supportsFeature(LanguageFeature.DataFlowBasedExhaustiveness)) return
+            if (equalityOperatorCall.operation != FirOperation.EQ && equalityOperatorCall.operation != FirOperation.IDENTITY) return
+            val argument = equalityOperatorCall.arguments[1]
+            val symbol = (argument as? FirResolvedQualifier)?.symbol ?: return
+
+            if (symbol is FirRegularClassSymbol && symbol.classKind == ClassKind.OBJECT) {
+                data.add(argument.resolvedType)
+            }
         }
     }
 

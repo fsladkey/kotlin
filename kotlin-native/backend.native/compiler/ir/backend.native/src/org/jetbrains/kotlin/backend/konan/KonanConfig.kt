@@ -16,6 +16,7 @@ import org.jetbrains.kotlin.backend.konan.objcexport.ObjCEntryPoints
 import org.jetbrains.kotlin.backend.konan.objcexport.readObjCEntryPoints
 import org.jetbrains.kotlin.backend.konan.serialization.KonanUserVisibleIrModulesSupport
 import org.jetbrains.kotlin.backend.konan.serialization.PartialCacheInfo
+import org.jetbrains.kotlin.backend.konan.util.systemCacheRootDirectory
 import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
 import org.jetbrains.kotlin.config.CommonConfigurationKeys
 import org.jetbrains.kotlin.config.CompilerConfiguration
@@ -285,10 +286,10 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
                 ?: false // For now disabled by default due to performance penalty.
     }
 
-    internal val defaultPagedAllocator: Boolean get() = true
+    internal val defaultPagedAllocator: Boolean get() = sanitizer == null
 
     val pagedAllocator: Boolean by lazy {
-        configuration.get(BinaryOptions.pagedAllocator) ?: true
+        configuration.get(BinaryOptions.pagedAllocator) ?: defaultPagedAllocator
     }
 
     internal val bridgesPolicy: BridgesPolicy by lazy {
@@ -375,23 +376,18 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
     }
 
     private val defaultAllocationMode
-        get() =
-            if (sanitizer == null)
-                AllocationMode.CUSTOM
-            else
-                AllocationMode.STD
+        get() = AllocationMode.CUSTOM
 
     val allocationMode by lazy {
-        when (configuration.get(KonanConfigKeys.ALLOCATION_MODE)) {
-            null -> defaultAllocationMode
-            AllocationMode.STD -> AllocationMode.STD
-            AllocationMode.CUSTOM -> {
-                if (sanitizer != null) {
-                    configuration.report(CompilerMessageSeverity.STRONG_WARNING, "Sanitizers are useful only with the std allocator")
-                }
-                AllocationMode.CUSTOM
+        (configuration.get(KonanConfigKeys.ALLOCATION_MODE) ?: defaultAllocationMode).also {
+            if (it == AllocationMode.CUSTOM && sanitizer != null && pagedAllocator) {
+                configuration.report(CompilerMessageSeverity.STRONG_WARNING, "Sanitizers are not useful with the paged allocator")
             }
         }
+    }
+
+    val minidumpLocation by lazy {
+        configuration.get(BinaryOptions.minidumpLocation)
     }
 
     val swiftExport by lazy {
@@ -510,6 +506,8 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
             append("-fixed_block_page_size$fixedBlockPageSize")
         if (pagedAllocator != defaultPagedAllocator)
             append("-paged_allocator${if (pagedAllocator) "TRUE" else "FALSE"}")
+        if (minidumpLocation != null)
+            append("-with_crash_dumps")
     }
 
     private val userCacheFlavorString = buildString {
@@ -518,13 +516,12 @@ class KonanConfig(val project: Project, val configuration: CompilerConfiguration
         if (partialLinkageConfig.isEnabled) append("-pl")
     }
 
-    private val systemCacheRootDirectory = File(distribution.konanHome).child("klib").child("cache")
-    internal val systemCacheDirectory = systemCacheRootDirectory.child(systemCacheFlavorString).also { it.mkdirs() }
+    internal val systemCacheDirectory = File(distribution.systemCacheRootDirectory.absolutePath).child(systemCacheFlavorString).also { it.mkdirs() }
     private val autoCacheRootDirectory = configuration.get(KonanConfigKeys.AUTO_CACHE_DIR)?.let {
         File(it).apply {
             if (!isDirectory) configuration.reportCompilationError("auto cache directory $this is not found or is not a directory")
         }
-    } ?: systemCacheRootDirectory
+    } ?: File(distribution.systemCacheRootDirectory.absolutePath)
     internal val autoCacheDirectory = autoCacheRootDirectory.child(userCacheFlavorString).also { it.mkdirs() }
     private val incrementalCacheRootDirectory = configuration.get(KonanConfigKeys.INCREMENTAL_CACHE_DIR)?.let {
         File(it).apply {

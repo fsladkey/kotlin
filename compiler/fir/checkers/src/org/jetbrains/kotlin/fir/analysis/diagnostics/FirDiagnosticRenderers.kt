@@ -31,6 +31,7 @@ import org.jetbrains.kotlin.fir.types.*
 import org.jetbrains.kotlin.metadata.deserialization.VersionRequirement
 import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.ClassId
+import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.types.model.TypeConstructorMarker
 import java.text.MessageFormat
 
@@ -169,7 +170,6 @@ object FirDiagnosticRenderers {
 
     val DECLARATION_NAME = Renderer { symbol: FirBasedSymbol<*> ->
         when (symbol) {
-            is FirValueParameterSymbol -> (symbol.resolvedReturnType.parameterName ?: symbol.name).asString()
             is FirCallableSymbol<*> -> symbol.name.asString()
             is FirClassLikeSymbol<*> -> symbol.classId.shortClassName.asString()
             is FirTypeParameterSymbol -> symbol.name.asString()
@@ -313,12 +313,6 @@ object FirDiagnosticRenderers {
     // TODO: properly implement
     val RENDER_TYPE_WITH_ANNOTATIONS = RENDER_TYPE
 
-    val AMBIGUOUS_CALLS = Renderer { candidates: Collection<FirBasedSymbol<*>> ->
-        candidates.joinToString(separator = "\n", prefix = "\n") { symbol ->
-            SYMBOL.render(symbol)
-        }
-    }
-
     private const val WHEN_MISSING_LIMIT = 7
 
     val WHEN_MISSING_CASES = Renderer { missingCases: List<WhenMissingCase> ->
@@ -343,7 +337,7 @@ object FirDiagnosticRenderers {
         if (classId == null) {
             "file"
         } else {
-            "'${classId}'"
+            "'${classId.asFqNameString()}'"
         }
     }
 
@@ -375,12 +369,16 @@ object FirDiagnosticRenderers {
         if (!it.isNullOrBlank()) " for operator '$it'" else ""
     }
 
+    val OF_OPTIONAL_NAME = Renderer { name: Name? ->
+        name?.asString()?.takeIf { it.isNotBlank() }?.let { " of '$it'" } ?: ""
+    }
+
     val SYMBOL_WITH_CONTAINING_DECLARATION = Renderer { symbol: FirBasedSymbol<*> ->
         val containingClassId = when (symbol) {
-            is FirCallableSymbol<*> -> symbol.callableId.classId
+            is FirCallableSymbol<*> -> symbol.callableId?.classId
             is FirTypeParameterSymbol -> (symbol.containingDeclarationSymbol as? FirClassLikeSymbol<*>)?.classId
             else -> null
-        }
+        } ?: return@Renderer "'${SYMBOL.render(symbol)}'"
         "'${SYMBOL.render(symbol)}' defined in ${NAME_OF_DECLARATION_OR_FILE.render(containingClassId)}"
     }
 

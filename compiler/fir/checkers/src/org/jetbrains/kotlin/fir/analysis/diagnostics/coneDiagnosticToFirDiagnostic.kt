@@ -257,7 +257,7 @@ private val KtFakeSourceElementKind.shouldIgnoreSimpleDiagnostic: Boolean
 
 fun FirBasedSymbol<*>.toInvisibleReferenceDiagnostic(source: KtSourceElement?, session: FirSession): KtDiagnostic? =
     when (val symbol = this) {
-        is FirCallableSymbol<*> -> FirErrors.INVISIBLE_REFERENCE.createOn(source, symbol, symbol.visibility, symbol.callableId.classId, session)
+        is FirCallableSymbol<*> -> FirErrors.INVISIBLE_REFERENCE.createOn(source, symbol, symbol.visibility, symbol.callableId?.classId, session)
         is FirClassLikeSymbol<*> -> FirErrors.INVISIBLE_REFERENCE.createOn(
             source,
             symbol,
@@ -460,11 +460,14 @@ private fun mapInapplicableCandidateError(
                 rootCause.function.symbol,
                 session
             )
-            is NoValueForParameter -> FirErrors.NO_VALUE_FOR_PARAMETER.createOn(
-                qualifiedAccessSource ?: source,
-                rootCause.valueParameter.symbol,
-                session
-            )
+            is NoValueForParameter -> {
+                val symbol = rootCause.valueParameter.symbol
+                FirErrors.NO_VALUE_FOR_PARAMETER.createOn(
+                    qualifiedAccessSource ?: source,
+                    symbol.resolvedReturnType.valueParameterName(session) ?: symbol.name,
+                    session
+                )
+            }
 
             is NameNotFound -> FirErrors.NAMED_PARAMETER_NOT_FOUND.createOn(
                 rootCause.argument.source ?: source,
@@ -492,7 +495,7 @@ private fun mapInapplicableCandidateError(
             )
             is InfixCallOfNonInfixFunction -> FirErrors.INFIX_MODIFIER_REQUIRED.createOn(source, rootCause.function, session)
             is OperatorCallOfNonOperatorFunction ->
-                FirErrors.OPERATOR_MODIFIER_REQUIRED.createOn(source, rootCause.function, rootCause.function.name.asString(), session)
+                FirErrors.OPERATOR_MODIFIER_REQUIRED.createOn(source, rootCause.function, session)
 
             is OperatorCallOfConstructor -> FirErrors.OPERATOR_CALL_ON_CONSTRUCTOR.createOn(
                 source,
@@ -502,6 +505,8 @@ private fun mapInapplicableCandidateError(
             is UnstableSmartCast -> rootCause.mapUnstableSmartCast(session)
 
             is DslScopeViolation -> FirErrors.DSL_SCOPE_VIOLATION.createOn(source, rootCause.calleeSymbol, session)
+            is ReceiverShadowedByContextParameter ->
+                FirErrors.RECEIVER_SHADOWED_BY_CONTEXT_PARAMETER.createOn(source, rootCause.calleeSymbol, session)
             is InferenceError -> {
                 rootCause.constraintError.toDiagnostic(
                     source,

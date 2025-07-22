@@ -106,11 +106,6 @@ class FirCallResolver(
 
         functionCall.replaceCalleeReference(nameReference)
         val candidate = (nameReference as? FirNamedReferenceWithCandidate)?.candidate
-        val resolvedReceiver = functionCall.explicitReceiver?.unwrapSmartcastExpression()
-        if (candidate != null && resolvedReceiver is FirResolvedQualifier) {
-            resolvedReceiver.replaceResolvedToCompanionObject(candidate.isFromCompanionObjectTypeScope)
-        }
-
         candidate?.updateSourcesOfReceivers()
 
         // We need desugaring
@@ -125,6 +120,16 @@ class FirCallResolver(
         } else {
             functionCall
         }
+
+        val resolvedReceiver = resultFunctionCall.explicitReceiver?.unwrapSmartcastExpression()
+        if (resolvedReceiver is FirResolvedQualifier) {
+            if (candidate != null) {
+                resolvedReceiver.unsetResolvedToCompanionIf(!candidate.isFromCompanionObjectTypeScope)
+            }
+            // In case of implicit invoke on explicit companion `Foo.Companion()`, we haven't processed `Foo` yet and need to do it here.
+            resolvedReceiver.explicitParent?.unsetResolvedToCompanionIf(true)
+        }
+
         val type = components.typeFromCallee(resultFunctionCall)
         if (type is ConeErrorType) {
             resultFunctionCall.resultType = type
@@ -222,6 +227,7 @@ class FirCallResolver(
         resolutionContext: ResolutionContext = transformer.resolutionContext,
     ): Pair<Set<Candidate>, CandidateApplicability> {
         fun chooseMostSpecific(list: List<Candidate>): Set<Candidate> {
+            list.singleOrNull()?.let { return setOf(it) }
             val onSuperReference = explicitReceiver is FirSuperReceiverExpression
             return conflictResolver.chooseMaximallySpecificCandidates(list, discriminateAbstracts = onSuperReference)
         }
@@ -232,7 +238,7 @@ class FirCallResolver(
             return chooseMostSpecific(candidates) to collector.currentApplicability
         }
 
-        if (candidates.size > 1) {
+        if (candidates.isNotEmpty()) {
             // First, fully process all of them and group them by their worst applicability.
             val groupedByDiagnosticCount = candidates.groupBy {
                 components.resolutionStageRunner.fullyProcessCandidate(it, resolutionContext)
@@ -305,7 +311,10 @@ class FirCallResolver(
                     components
                 )
                 ?.takeIf { it.applicability == CandidateApplicability.RESOLVED || !basicResult.applicability.isSuccess }
-                ?.let { return it.qualifier }
+                ?.let {
+                    explicitReceiver.unsetResolvedToCompanionIf(true)
+                    return it.qualifier
+                }
         }
 
         var result = basicResult
@@ -338,7 +347,7 @@ class FirCallResolver(
             val newResult = collectCandidates(qualifiedAccess, callee.name, CallKind.Function, resolutionMode = resolutionMode)
             if (newResult.candidates.isNotEmpty()) {
                 result = newResult
-                functionCallExpected = true
+                functionCallExpected = newResult.applicability > CandidateApplicability.INAPPLICABLE_WRONG_RECEIVER
             }
         }
 
@@ -368,12 +377,12 @@ class FirCallResolver(
             else -> null
         }
 
-        (qualifiedAccess.explicitReceiver?.unwrapSmartcastExpression() as? FirResolvedQualifier)?.replaceResolvedToCompanionObject(
-            reducedCandidates.isNotEmpty() && reducedCandidates.all { it.isFromCompanionObjectTypeScope }
+        (qualifiedAccess.explicitReceiver?.unwrapSmartcastExpression() as? FirResolvedQualifier)?.unsetResolvedToCompanionIf(
+            reducedCandidates.isEmpty() || !reducedCandidates.all { it.isFromCompanionObjectTypeScope }
         )
 
-        when {
-            referencedSymbol is FirClassLikeSymbol<*> -> {
+        when (referencedSymbol) {
+            is FirClassLikeSymbol<*> -> {
                 val extraDiagnostic =
                     runIf(reducedCandidates.singleOrNull()?.doesResolutionResultOverrideOtherToPreserveCompatibility() == true) {
                         ConeResolutionResultOverridesOtherToPreserveCompatibility
@@ -382,6 +391,7 @@ class FirCallResolver(
                 return components.buildResolvedQualifierForClass(
                     referencedSymbol,
                     qualifiedAccess.source,
+                    explicitParent = qualifiedAccess.explicitReceiver as? FirResolvedQualifier,
                     qualifiedAccess.typeArguments,
                     diagnostic ?: extractNestedClassAccessDiagnostic(
                         nameReference.source,
@@ -398,7 +408,7 @@ class FirCallResolver(
                     annotations = qualifiedAccess.annotations
                 )
             }
-            referencedSymbol is FirTypeParameterSymbol && referencedSymbol.fir.isReified && diagnostic == null -> {
+            is FirTypeParameterSymbol if referencedSymbol.fir.isReified && diagnostic == null -> {
                 return buildResolvedReifiedParameterReference {
                     source = nameReference.source
                     symbol = referencedSymbol
@@ -471,8 +481,8 @@ class FirCallResolver(
 
         val (reducedCandidates, applicability) = reduceCandidates(result, callableReferenceAccess.explicitReceiver)
 
-        (callableReferenceAccess.explicitReceiver?.unwrapSmartcastExpression() as? FirResolvedQualifier)?.replaceResolvedToCompanionObject(
-            reducedCandidates.isNotEmpty() && reducedCandidates.all { it.isFromCompanionObjectTypeScope }
+        (callableReferenceAccess.explicitReceiver?.unwrapSmartcastExpression() as? FirResolvedQualifier)?.unsetResolvedToCompanionIf(
+            reducedCandidates.isEmpty() || !reducedCandidates.all { it.isFromCompanionObjectTypeScope }
         )
 
         when {

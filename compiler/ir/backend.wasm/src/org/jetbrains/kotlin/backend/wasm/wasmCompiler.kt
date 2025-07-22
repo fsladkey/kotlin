@@ -15,6 +15,8 @@ import org.jetbrains.kotlin.backend.wasm.lower.JsInteropFunctionsLowering
 import org.jetbrains.kotlin.backend.wasm.lower.markExportedDeclarations
 import org.jetbrains.kotlin.backend.wasm.utils.DwarfGenerator
 import org.jetbrains.kotlin.backend.wasm.utils.SourceMapGenerator
+import org.jetbrains.kotlin.cli.common.messages.CompilerMessageSeverity
+import org.jetbrains.kotlin.cli.common.messages.MessageCollector
 import org.jetbrains.kotlin.config.CompilerConfiguration
 import org.jetbrains.kotlin.ir.backend.js.MainModule
 import org.jetbrains.kotlin.ir.backend.js.WholeWorldStageController
@@ -153,13 +155,12 @@ fun compileWasm(
     useDebuggerCustomFormatters: Boolean,
     generateDwarf: Boolean
 ): WasmCompilerResult {
-    val useJsTag = configuration.getBoolean(WasmConfigurationKeys.WASM_USE_JS_TAG)
     val isWasmJsTarget = configuration.get(WasmConfigurationKeys.WASM_TARGET) != WasmTarget.WASI
 
     val wasmCompiledModuleFragment = WasmCompiledModuleFragment(
         wasmCompiledFileFragments,
         configuration.getBoolean(WasmConfigurationKeys.WASM_USE_TRAPS_INSTEAD_OF_EXCEPTIONS),
-        isWasmJsTarget && useJsTag,
+        isWasmJsTarget,
     )
 
     val linkedModule = wasmCompiledModuleFragment.linkWasmCompiledFragments()
@@ -211,6 +212,8 @@ fun compileWasm(
             jsModuleAndQualifierReferences.addAll(fragment.jsModuleAndQualifierReferences)
         }
 
+        val useJsTag = !configuration.getBoolean(WasmConfigurationKeys.WASM_NO_JS_TAG)
+
         jsUninstantiatedWrapper = generateAsyncJsWrapper(
             jsModuleImports,
             jsFuns,
@@ -227,7 +230,7 @@ fun compileWasm(
         )
     } else {
         jsUninstantiatedWrapper = null
-        jsWrapper = wasmCompiledModuleFragment.generateAsyncWasiWrapper("./$baseFileName.wasm", linkedModule.exports)
+        jsWrapper = wasmCompiledModuleFragment.generateAsyncWasiWrapper("./$baseFileName.wasm", linkedModule.exports, useDebuggerCustomFormatters)
     }
 
     return WasmCompilerResult(
@@ -245,9 +248,14 @@ fun compileWasm(
 }
 
 //language=js
-fun WasmCompiledModuleFragment.generateAsyncWasiWrapper(wasmFilePath: String, exports: List<WasmExport<*>>): String = """
+fun WasmCompiledModuleFragment.generateAsyncWasiWrapper(
+    wasmFilePath: String,
+    exports: List<WasmExport<*>>,
+    useCustomFormatters: Boolean
+): String = """
 import { WASI } from 'wasi';
 import { argv, env } from 'node:process';
+${if (useCustomFormatters) "import \"./custom-formatters.js\"" else ""}
 
 const wasi = new WASI({ version: 'preview1', args: argv, env, });
 
@@ -291,7 +299,7 @@ fun generateAsyncJsWrapper(
             val qualifier = it.qualifier
             buildString {
                 append("    const ")
-                append(it.jsVariableName)
+                append(it.jsReference)
                 append(" = ")
                 if (module != null) {
                     append("imports[${module.toJsStringLiteral()}]")
@@ -343,12 +351,15 @@ $jsCodeBodyIndented
     if (!isNodeJs && !isDeno && !isStandaloneJsVM && !isBrowser) {
       throw "Supported JS engine not detected";
     }
-    
+
     const wasmFilePath = $pathJsStringLiteral;
+
+    const wasmTag =${if (useJsTag) " WebAssembly.JSTag ??" else "" } new WebAssembly.Tag({ parameters: ['externref'] });
+
     const importObject = {
         js_code,
         intrinsics: {
-            ${if (useJsTag) "js_error_tag: WebAssembly.JSTag" else ""}
+            tag: wasmTag
         },
 $imports
     };
@@ -432,7 +443,7 @@ fun generateEsmExportsWrapper(
             stringLiteral to if (it.qualifier != null) {
                 it.importVariableName
             } else {
-                it.jsVariableName
+                it.jsReference
             }
         }
 
@@ -471,7 +482,8 @@ ${generateExports(exports)}
 fun writeCompilationResult(
     result: WasmCompilerResult,
     dir: File,
-    fileNameBase: String
+    fileNameBase: String,
+    messageCollector: MessageCollector? = null
 ) {
     dir.mkdirs()
     if (result.wat != null) {
@@ -492,14 +504,21 @@ fun writeCompilationResult(
     }
     if (result.useDebuggerCustomFormatters) {
         val fileName = "custom-formatters.js"
-        val systemClassLoader = ClassLoader.getSystemClassLoader()
-        val customFormattersInputStream = systemClassLoader.getResourceAsStream(fileName) ?: error("Resource $fileName not found")
+        val classLoader = WasmCompilerResult::class.java.classLoader
+        val customFormattersInputStream = classLoader.getResourceAsStream(fileName) ?: run {
+            val message = "Custom formatters won't work because a required resource is missing from the compiler: $fileName"
+            messageCollector?.report(
+                CompilerMessageSeverity.STRONG_WARNING,
+                message
+            )
+            "console.warn(\"$message\");".byteInputStream()
+        }
 
         Files.copy(customFormattersInputStream, Paths.get(dir.path, fileName), StandardCopyOption.REPLACE_EXISTING)
     }
 
     if (result.dts != null) {
-        File(dir, "$fileNameBase.d.ts").writeText(result.dts)
+        File(dir, "$fileNameBase.d.mts").writeText(result.dts)
     }
 }
 

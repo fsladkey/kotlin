@@ -23,12 +23,7 @@ import org.jetbrains.kotlin.fir.declarations.FirDeclarationOrigin
 import org.jetbrains.kotlin.fir.declarations.FirReplSnippet
 import org.jetbrains.kotlin.fir.declarations.FirScript
 import org.jetbrains.kotlin.fir.declarations.FirVariable
-import org.jetbrains.kotlin.fir.declarations.builder.FirReplSnippetBuilder
-import org.jetbrains.kotlin.fir.declarations.builder.FirScriptBuilder
-import org.jetbrains.kotlin.fir.declarations.builder.buildAnonymousFunction
-import org.jetbrains.kotlin.fir.declarations.builder.buildProperty
-import org.jetbrains.kotlin.fir.declarations.builder.buildReceiverParameterCopy
-import org.jetbrains.kotlin.fir.declarations.builder.buildValueParameter
+import org.jetbrains.kotlin.fir.declarations.builder.*
 import org.jetbrains.kotlin.fir.declarations.impl.FirDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.declarations.impl.FirResolvedDeclarationStatusImpl
 import org.jetbrains.kotlin.fir.diagnostics.*
@@ -45,7 +40,7 @@ import org.jetbrains.kotlin.fir.references.builder.buildExplicitSuperReference
 import org.jetbrains.kotlin.fir.references.builder.buildExplicitThisReference
 import org.jetbrains.kotlin.fir.references.builder.buildSimpleNamedReference
 import org.jetbrains.kotlin.fir.symbols.impl.FirAnonymousFunctionSymbol
-import org.jetbrains.kotlin.fir.symbols.impl.FirPropertySymbol
+import org.jetbrains.kotlin.fir.symbols.impl.FirLocalPropertySymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirReceiverParameterSymbol
 import org.jetbrains.kotlin.fir.symbols.impl.FirValueParameterSymbol
 import org.jetbrains.kotlin.fir.types.FirTypeProjection
@@ -53,8 +48,8 @@ import org.jetbrains.kotlin.fir.types.FirTypeRef
 import org.jetbrains.kotlin.fir.types.builder.buildErrorTypeRef
 import org.jetbrains.kotlin.fir.types.impl.FirImplicitTypeRefImplWithoutSource
 import org.jetbrains.kotlin.lexer.KtTokens.*
-import org.jetbrains.kotlin.name.CallableId
 import org.jetbrains.kotlin.name.SpecialNames
+import org.jetbrains.kotlin.name.StandardClassIds
 import org.jetbrains.kotlin.psi.psiUtil.UNWRAPPABLE_TOKEN_TYPES
 import org.jetbrains.kotlin.psi.stubs.elements.KtConstantExpressionElementType
 import org.jetbrains.kotlin.psi.stubs.elements.KtNameReferenceExpressionElementType
@@ -226,7 +221,7 @@ class LightTreeRawFirExpressionBuilder(
                         origin = FirDeclarationOrigin.Source
                         returnTypeRef = valueParameter.firValueParameter.returnTypeRef
                         this.name = name
-                        symbol = FirValueParameterSymbol(name)
+                        symbol = FirValueParameterSymbol()
                         defaultValue = null
                         isCrossinline = false
                         isNoinline = false
@@ -315,10 +310,6 @@ class LightTreeRawFirExpressionBuilder(
 
                     input.add(leftNode)
                     input.add(rightNode)
-                }
-                PARENTHESIZED -> {
-                    val content = node.getExpressionInParentheses()
-                    input.add(content)
                 }
                 else -> {
                     if (node?.tokenType != STRING_TEMPLATE) {
@@ -760,6 +751,20 @@ class LightTreeRawFirExpressionBuilder(
 
         val source = callSuffix.toFirSourceElement()
 
+        // TODO(KT-22765) drop workaround when suspend modifier for lambdas is implemented
+        if (imitateLambdaSuspendModifier &&
+            name == StandardClassIds.Callables.suspend.callableName.identifier &&
+            !callSuffix.getParent().let { it.selectorExpression == callSuffix && it.receiverExpression != null } &&
+            valueArguments.singleOrNull()?.tokenType == LAMBDA_ARGUMENT &&
+            firTypeArguments.isEmpty()
+        ) {
+            valueArguments.single().getFirstChild()?.let {
+                return getAsFirExpression<FirAnonymousFunctionExpression>(it).apply {
+                    anonymousFunction.replaceStatus(anonymousFunction.status.copy(isSuspend = true))
+                }
+            }
+        }
+
         val (calleeReference, receiverForInvoke) = when {
             name != null -> CalleeAndReceiver(
                 buildSimpleNamedReference {
@@ -867,8 +872,7 @@ class LightTreeRawFirExpressionBuilder(
                         name = variable.name
                         initializer = variable.initializer
                         isVar = false
-                        symbol = FirPropertySymbol(variable.name)
-                        isLocal = true
+                        symbol = FirLocalPropertySymbol()
                         status = FirDeclarationStatusImpl(Visibilities.Local, Modality.FINAL)
                         receiverParameter = variable.receiverParameter?.let { receiverParameter ->
                             buildReceiverParameterCopy(receiverParameter) {
@@ -899,8 +903,7 @@ class LightTreeRawFirExpressionBuilder(
                 this.name = name
                 initializer = subjectExpression
                 isVar = false
-                symbol = FirPropertySymbol(name)
-                isLocal = true
+                symbol = FirLocalPropertySymbol()
                 status = FirDeclarationStatusImpl(Visibilities.Local, Modality.FINAL)
             }
         }
@@ -1406,9 +1409,8 @@ class LightTreeRawFirExpressionBuilder(
                         returnTypeRef = parameter.returnTypeRef
                         isVar = false
                         status = FirResolvedDeclarationStatusImpl(Visibilities.Local, Modality.FINAL, EffectiveVisibility.Local)
-                        isLocal = true
                         this.name = parameter.name
-                        symbol = FirPropertySymbol(CallableId(name))
+                        symbol = FirLocalPropertySymbol()
                         annotations += parameter.annotations
                     }.also {
                         it.isCatchParameter = true

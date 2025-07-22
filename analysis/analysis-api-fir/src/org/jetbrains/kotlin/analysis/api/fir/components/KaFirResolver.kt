@@ -72,9 +72,7 @@ import org.jetbrains.kotlin.lexer.KtTokens
 import org.jetbrains.kotlin.name.Name
 import org.jetbrains.kotlin.psi.*
 import org.jetbrains.kotlin.psi.KtPsiUtil.deparenthesize
-import org.jetbrains.kotlin.psi.psiUtil.containingClassOrObject
-import org.jetbrains.kotlin.psi.psiUtil.getPossiblyQualifiedCallExpression
-import org.jetbrains.kotlin.psi.psiUtil.getQualifiedElementSelector
+import org.jetbrains.kotlin.psi.psiUtil.*
 import org.jetbrains.kotlin.resolve.calls.inference.buildCurrentSubstitutor
 import org.jetbrains.kotlin.resolve.calls.tasks.ExplicitReceiverKind
 import org.jetbrains.kotlin.toKtPsiSourceElement
@@ -133,9 +131,6 @@ internal class KaFirResolver(
             ?: element.getOrBuildFir(analysisSession.resolutionFacade)
 
         if (wholeQualifier !is FirResolvedQualifier) return false
-
-        val wholeQualifierNameExpression = (wholeQualifier.psi as? KtElement)?.getQualifiedElementSelector() as? KtSimpleNameExpression
-        if (wholeQualifierNameExpression != element) return false
 
         return wholeQualifier.resolvedToCompanionObject
     }
@@ -1612,7 +1607,7 @@ internal class KaFirResolver(
             // FirBlock is a fake container for desugared expressions like `++index` or `++list[0]`
             is FirBlock -> psi as? KtExpression
             else -> realPsi as? KtExpression
-        }
+        }?.topParenthesizedParentOrMe()
     }
 
     private inline fun <R> wrapError(element: KtElement, action: () -> R): R {
