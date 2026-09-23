@@ -5,13 +5,20 @@
 
 package org.jetbrains.kotlin.gradle.unitTests
 
+import org.gradle.api.Project
 import org.jetbrains.kotlin.gradle.internal.properties.PropertiesBuildService
 import org.jetbrains.kotlin.gradle.internal.properties.propertiesService
+import org.jetbrains.kotlin.gradle.plugin.PropertiesProvider.Companion.kotlinPropertiesProvider
 import org.jetbrains.kotlin.gradle.plugin.extraProperties
 import org.jetbrains.kotlin.gradle.util.buildProject
 import org.jetbrains.kotlin.gradle.util.registerMinimalVariantImplementationFactoriesForTests
+import java.io.File
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFalse
+import kotlin.test.assertNotNull
+import kotlin.test.assertNull
+import kotlin.test.assertTrue
 
 class PropertiesBuildServiceTest {
 
@@ -239,5 +246,59 @@ class PropertiesBuildServiceTest {
             10,
             PropertiesBuildService.IntGradleProperty("some.prop", 10)
         )
+    }
+
+    /** Resolves `kotlin.native.dependenciesUrl` for a fresh project, returning the project and the resolved value. */
+    private fun resolveNativeDependenciesUrl(rawValue: String?): Pair<Project, String?> {
+        val project = buildProject()
+        project.gradle.registerMinimalVariantImplementationFactoriesForTests()
+        if (rawValue != null) {
+            project.extraProperties.set("kotlin.native.dependenciesUrl", rawValue)
+        }
+        return project to project.kotlinPropertiesProvider.nativeDependenciesUrl
+    }
+
+    /** Asserts that [url] is an absolute, normalized `file:` url pointing at [expectedSuffix]. */
+    private fun assertResolvedLocalDirectory(url: String?, expectedSuffix: String) {
+        assertNotNull(url)
+        assertTrue(url.startsWith("file:/"), "Expected an absolute file: url but got $url")
+        assertTrue(url.endsWith(expectedSuffix), "Expected $url to end with $expectedSuffix")
+        assertFalse(url.contains(".."), "Expected a normalized url but got $url")
+    }
+
+    @Test
+    fun testNativeDependenciesUrlIsNullWhenUnset() {
+        val (_, url) = resolveNativeDependenciesUrl(null)
+        assertNull(url)
+    }
+
+    @Test
+    fun testNativeDependenciesUrlKeepsHttpUrlAsIs() {
+        val httpsUrl = "https://download.jetbrains.com/kotlin/native"
+        val (_, url) = resolveNativeDependenciesUrl(httpsUrl)
+        assertEquals(httpsUrl, url)
+    }
+
+    @Test
+    fun testNativeDependenciesUrlResolvesRelativePath() {
+        val (_, url) = resolveNativeDependenciesUrl("../../prebuilts/androidx/konan")
+        assertResolvedLocalDirectory(url, "/prebuilts/androidx/konan")
+    }
+
+    @Test
+    fun testNativeDependenciesUrlResolvesRelativeFileScheme() {
+        // Both `file:<path>` and the non-standard `file://<path>` are accepted for relative paths.
+        val (_, singleSlash) = resolveNativeDependenciesUrl("file:../../prebuilts/androidx/konan")
+        assertResolvedLocalDirectory(singleSlash, "/prebuilts/androidx/konan")
+
+        val (_, doubleSlash) = resolveNativeDependenciesUrl("file://../../prebuilts/androidx/konan")
+        assertResolvedLocalDirectory(doubleSlash, "/prebuilts/androidx/konan")
+    }
+
+    @Test
+    fun testNativeDependenciesUrlPreservesAbsolutePath() {
+        val absolutePath = File("/tmp/prebuilts/konan")
+        val (_, url) = resolveNativeDependenciesUrl("file://${absolutePath.path}")
+        assertEquals(absolutePath.toURI().toString().trimEnd('/'), url)
     }
 }

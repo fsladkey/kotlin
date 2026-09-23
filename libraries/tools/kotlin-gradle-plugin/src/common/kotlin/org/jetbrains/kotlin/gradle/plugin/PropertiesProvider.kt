@@ -340,6 +340,23 @@ internal class PropertiesProvider private constructor(private val project: Proje
         get() = property("kotlin.native.distribution.baseDownloadUrl").orNull ?: NativeCompilerDownloader.BASE_DOWNLOAD_URL
 
     /**
+     * Allows overriding Kotlin/Native dependencies download url or local directory path.
+     *
+     * The value may be an `http(s)` url, a `file:` url or a plain filesystem path. Relative paths are
+     * resolved against the root project directory. The result is always an absolute url, so that
+     * consumers can simply append a file name to it.
+     */
+    val nativeDependenciesUrl: String?
+        get() {
+            val raw = property("kotlin.native.dependenciesUrl").orNull ?: return null
+            if (raw.startsWith("http://") || raw.startsWith("https://")) return raw
+            // Tolerates the non-standard `file://<relative path>` form in addition to `file:/<absolute path>`.
+            val path = raw.removePrefix("file:").removePrefix("//")
+            // `resolve` returns the argument as-is when it is already rooted, which also covers Windows drive letters.
+            return project.rootDir.resolve(path).normalize().toURI().toString().trimEnd('/')
+        }
+
+    /**
      * Forces reinstalling a K/N distribution.
      *
      * The current distribution directory will be removed along with generated platform libraries and precompiled dependencies.
