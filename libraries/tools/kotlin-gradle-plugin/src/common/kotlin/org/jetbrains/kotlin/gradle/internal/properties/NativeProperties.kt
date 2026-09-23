@@ -10,6 +10,8 @@ import org.gradle.api.provider.Provider
 import org.jetbrains.kotlin.gradle.internal.properties.NativeProperties.Companion.KONAN_DATA_DIR
 import org.jetbrains.kotlin.gradle.utils.NativeCompilerDownloader
 import java.io.File
+import java.net.URI
+import java.nio.file.Paths
 
 internal val Project.nativeProperties: NativeProperties
     get() = NativePropertiesLoader(this)
@@ -22,6 +24,13 @@ internal interface NativeProperties {
     val konanDataDir: Provider<File?>
     val downloadFromMaven: Provider<Boolean>
     val isToolchainEnabled: Provider<Boolean>
+
+    /**
+     * Location Kotlin/Native toolchain dependencies are downloaded from, see `kotlin.native.dependenciesUrl`.
+     *
+     * Always an absolute url when present, so that a file name can simply be appended to it.
+     */
+    val dependenciesUrl: Provider<String>
 
     /**
      * Value of 'kotlin.native.home' property.
@@ -95,6 +104,14 @@ private class NativePropertiesLoader(private val project: Project) : NativePrope
         it.property(NATIVE_TOOLCHAIN_ENABLED, project).zip(downloadFromMaven) { isToolchainEnabled, isDownloadFromMavenEnabled ->
             isToolchainEnabled && isDownloadFromMavenEnabled
         }
+    }
+
+    // Captured as a plain value: the resolver must not reference Project at execution time.
+    private val rootDir = project.rootDir
+
+    override val dependenciesUrl: Provider<String> = propertiesService.flatMap { service ->
+        service.property(NATIVE_DEPENDENCIES_URL.name, project)
+            .map { resolveNativeDependenciesUrl(it, rootDir) }
     }
 
     override val userProvidedNativeHome: Provider<String> = propertiesService.flatMap { service ->
@@ -172,5 +189,67 @@ private class NativePropertiesLoader(private val project: Project) : NativePrope
             defaultValue = true
         )
 
+        /**
+         * Allows overriding the location Kotlin/Native toolchain dependencies are downloaded from.
+         *
+         * Accepts a remote url, a `file:` url or a plain filesystem path; relative paths are resolved
+         * against the root project directory.
+         */
+        private val NATIVE_DEPENDENCIES_URL = PropertiesBuildService.NullableStringGradleProperty(
+            name = "$PROPERTIES_PREFIX.dependenciesUrl"
+        )
+
     }
+}
+
+/**
+ * Matches a Windows path with a drive letter, such as `C:/konan` or `C:\konan`.
+ *
+ * Such a path parses as a [URI] whose scheme is the drive letter, so it has to be recognised before parsing.
+ */
+private val WINDOWS_DRIVE_PATH = Regex("^[a-zA-Z]:[/\\\\].*")
+
+/** Length of `file:/`, the shortest possible `file:` url, which denotes the filesystem root. */
+private const val FILE_URL_ROOT_LENGTH = 6
+
+/**
+ * Normalizes a user-supplied Kotlin/Native dependencies location into an absolute url.
+ *
+ * Accepts a remote url, a `file:` url or a plain filesystem path. Relative paths are resolved against [rootDir].
+ *
+ * @throws IllegalArgumentException for a `file:` url with an authority, such as `file://../konan`. Such a url
+ *   names a host rather than a local path; left alone, it would silently resolve to the wrong directory.
+ */
+internal fun resolveNativeDependenciesUrl(rawValue: String, rootDir: File): String {
+    val raw = rawValue.trim()
+    // A drive-letter path is not a url, see [WINDOWS_DRIVE_PATH].
+    val uri = if (WINDOWS_DRIVE_PATH.matches(raw)) null else runCatching { URI(raw) }.getOrNull()
+    val scheme = uri?.scheme
+
+    return when {
+        // Remote locations are passed through untouched, `URL` knows how to open them.
+        scheme != null && !scheme.equals("file", ignoreCase = true) -> raw
+        // `file:relative/path` is opaque, its path lands in the scheme specific part.
+        uri != null && uri.isOpaque -> rootDir.resolveToUrl(uri.schemeSpecificPart)
+        uri?.authority != null -> throw IllegalArgumentException(
+            "Unsupported value '$raw' for 'kotlin.native.dependenciesUrl': a 'file://' url must be followed by an " +
+                    "absolute path, e.g. 'file:///opt/konan'. For a path relative to the root project, use a plain " +
+                    "path such as '../prebuilts/konan'."
+        )
+        // A well-formed `file:/...` url. `Paths.get` applies platform rules, including drive letters.
+        scheme != null -> runCatching { Paths.get(uri).toFile().toUrlString() }
+            .getOrElse { rootDir.resolveToUrl(uri.path.orEmpty()) }
+        // A plain filesystem path, absolute or relative.
+        else -> rootDir.resolveToUrl(raw)
+    }
+}
+
+private fun File.resolveToUrl(path: String): String = resolve(path).toUrlString()
+
+private fun File.toUrlString(): String {
+    val url = normalize().toURI().toString()
+    // `File.toURI` appends a trailing slash for directories that already exist, which would make the result
+    // depend on the state of the filesystem. Consumers append `/<file name>`, so drop it - but not for the
+    // filesystem root, where the slash is the whole path.
+    return if (url.length > FILE_URL_ROOT_LENGTH) url.trimEnd('/') else url
 }
